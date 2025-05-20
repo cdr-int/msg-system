@@ -1,4 +1,4 @@
-from flask import Flask, request, render_template, redirect, url_for, flash, session
+from flask import Flask, request, render_template, redirect, url_for, flash, session, Response
 from pymongo import MongoClient
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
@@ -6,6 +6,8 @@ import os
 import time
 import pytz
 from datetime import datetime
+import json
+from bson import ObjectId
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -91,6 +93,39 @@ def index():
     # Retrieve all messages from the database
     messages = messages_collection.find().sort("createdAt", -1)
     return render_template("index.html", messages=messages)
+
+
+# Custom JSON encoder to handle ObjectId serialization
+class MongoJSONEncoder(json.JSONEncoder):
+
+    def default(self, obj):
+        if isinstance(obj, ObjectId):
+            return str(obj)  # Convert ObjectId to string
+        return super().default(obj)
+
+
+# SSE route for streaming messages in real-time
+@app.route('/stream')
+def stream():
+
+    def generate():
+        last_checked_time = time.time()
+
+        while True:
+            # Query the database for any new messages since the last check
+            new_messages = messages_collection.find({
+                "createdAt": {
+                    "$gt": last_checked_time
+                }
+            }).sort("createdAt", 1)
+            for message in new_messages:
+                yield f"data: {json.dumps(message, cls=MongoJSONEncoder)}\n\n"
+                last_checked_time = message[
+                    "createdAt"]  # Update the last checked time
+
+            time.sleep(1)  # Wait for 1 second before checking again
+
+    return Response(generate(), content_type='text/event-stream')
 
 
 # Run the Flask app

@@ -1,4 +1,4 @@
-run = "python app.py"
+run = "python api/index.py"
 entrypoint = "README.md"
 modules = ["python-3.11"]
 

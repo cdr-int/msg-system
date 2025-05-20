@@ -61,14 +61,18 @@
             margin: 0 auto 20px;
         }
 
-        textarea {
-            width: 100%;
+        .input-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        input[type="text"] {
+            width: 80%;
             padding: 12px;
             font-size: 16px;
             border: 1px solid #ddd;
             border-radius: 8px;
-            margin-bottom: 10px;
-            resize: vertical;
         }
 
         input[type="submit"] {
@@ -135,6 +139,10 @@
                 padding: 10px 15px;
                 font-size: 14px;
             }
+
+            input[type="text"] {
+                width: 70%;
+            }
         }
     </style>
 </head>
@@ -156,8 +164,10 @@
         <div class="form-container">
             <h2>Choose a Username:</h2>
             <form method="POST">
-                <input type="text" name="username" placeholder="Enter your username" required><br><br>
-                <input type="submit" value="Set Username">
+                <div class="input-container">
+                    <input type="text" name="username" placeholder="Enter your username" required style="margin: 0px 15px 0px 0px;">
+                    <input type="submit" value="Set Username">
+                </div>
             </form>
         </div>
     {% else %}
@@ -174,10 +184,31 @@
         <h2>Messages:</h2>
         {% for message in messages %}
             <div class="message">
-                <p>{{ message['content']|safe }}</p>  <!-- Display message content with username in bold -->
+                <p>{{ message['content']|safe }}</p>  
             </div>
         {% endfor %}
     </div>
 
+    <!-- JavaScript for SSE -->
+    <script>
+        const messageContainer = document.querySelector('.messages-container');
+
+        // Create a new EventSource to listen for new messages
+        const eventSource = new EventSource('/stream');
+
+        // When a new message is received, append it to the message container
+        eventSource.onmessage = function(event) {
+            const newMessage = JSON.parse(event.data);
+            const messageDiv = document.createElement('div');
+            messageDiv.classList.add('message');
+            messageDiv.innerHTML = `<p>${newMessage.content}</p>`;
+            messageContainer.appendChild(messageDiv);
+        };
+
+        // Handle any errors
+        eventSource.onerror = function(event) {
+            console.error("Error with SSE connection:", event);
+        };
+    </script>
 </body>
 </html>
