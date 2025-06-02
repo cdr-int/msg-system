@@ -330,6 +330,31 @@ def index():
     messages = messages_collection.find().sort("createdAt", -1)
     return render_template("index.html", messages=messages)
 
+@app.route("/admin/delete_user/<user_id>", methods=["POST"])
+def delete_user(user_id):
+    # Check if user is logged in and is admin
+    if "user_id" not in session:
+        flash("You must be logged in to perform this action.", "error")
+        return redirect(url_for("login"))
+
+    if session.get("permission_level", 0) != 1:
+        flash("You do not have permission to perform this action.", "error")
+        return redirect(url_for("index"))
+
+    # Prevent admin from deleting themselves
+    if user_id == session["user_id"]:
+        flash("You cannot delete your own user account.", "error")
+        return redirect(url_for("admin_dashboard"))
+
+    # Delete user from the database
+    result = users_collection.delete_one({"_id": ObjectId(user_id)})
+
+    if result.deleted_count > 0:
+        flash("User deleted successfully.", "success")
+    else:
+        flash("User not found or could not be deleted.", "error")
+
+    return redirect(url_for("admin_dashboard"))
 
 # Custom JSON encoder to handle ObjectId serialization
 class MongoJSONEncoder(json.JSONEncoder):

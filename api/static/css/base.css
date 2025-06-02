@@ -52,7 +52,7 @@ h2 {
 /* Form Styles */
 form {
     background-color: #fff;
-    padding: 20px;
+    padding: 0px;
     border-radius: 8px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     max-width: 600px;
@@ -159,9 +159,6 @@ input[type="submit"]:hover {
         font-size: 20px;
     }
 
-    form {
-        padding: 15px;
-    }
 
     textarea, input[type="text"], input[type="password"] {
         font-size: 14px;
