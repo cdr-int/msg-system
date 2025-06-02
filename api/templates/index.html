@@ -212,13 +212,20 @@
         // Create a new EventSource to listen for new messages
         const eventSource = new EventSource('/stream');
 
-        // When a new message is received, insert it at the bottom (consistent with ascending order)
+        // When a new message is received, insert it at the top (consistent with descending order)
         eventSource.onmessage = function(event) {
             const newMessage = JSON.parse(event.data);
             const messageDiv = document.createElement('div');
             messageDiv.classList.add('message');
             messageDiv.innerHTML = `<p>${newMessage.content}</p>`;
-            messageContainer.appendChild(messageDiv);
+            
+            // Find the h2 "Messages:" element and insert after it
+            const messagesHeader = messageContainer.querySelector('h2');
+            if (messagesHeader && messagesHeader.nextSibling) {
+                messageContainer.insertBefore(messageDiv, messagesHeader.nextSibling);
+            } else {
+                messageContainer.appendChild(messageDiv);
+            }
         };
 
         // Handle any errors

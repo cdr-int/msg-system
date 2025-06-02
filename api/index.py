@@ -141,7 +141,7 @@ def index():
         return redirect(url_for("index"))
 
     # Retrieve all messages from the database
-    messages = messages_collection.find().sort("createdAt", 1)
+    messages = messages_collection.find().sort("createdAt", -1)
     return render_template("index.html", messages=messages)
 
 
