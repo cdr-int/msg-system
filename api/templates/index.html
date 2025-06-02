@@ -1,86 +1,14 @@
 {% extends "base.html" %}
-
+```
+```html
 {% block title %}Home - Anonymous Messaging{% endblock %}
-
+```
+```html
 {% block extra_css %}
     <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
-{% endblock %}
-
-{% block content %}
-    <div class="header">
-        <h1>Anonymous Messaging System</h1>
-        <a href="{{ url_for('logout') }}" class="logout-btn">Logout</a>
-    </div>
-
-    <!-- Display flash messages -->
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            <div>
-                {% for category, message in messages %}
-                    <div class="{{ category }}">{{ message }}</div>
-                {% endfor %}
-            </div>
-        {% endif %}
-    {% endwith %}
-
-    <div class="form-container">
-        <h2 class="welcome-message">Welcome, {{ session['username'] }}! Send a new message:</h2>
-        <form method="POST">
-            <textarea name="content" placeholder="Write your message here..." rows="4" required></textarea><br>
-            <input type="submit" value="Send Message">
-        </form>
-    </div>
-
-    <div class="messages-container">
-        <h2>Messages:</h2>
-        {% for message in messages %}
-            <div class="message">
-                <p>{{ message['content']|safe }}</p>  
-            </div>
-        {% endfor %}
-    </div>
-{% endblock %}
-
-{% block scripts %}
-    <script>
-        const messageContainer = document.querySelector('.messages-container');
-
-        // Create a new EventSource to listen for new messages
-        const eventSource = new EventSource('/stream');
-
-        // When a new message is received, insert it at the top (consistent with descending order)
-        eventSource.onmessage = function(event) {
-            const newMessage = JSON.parse(event.data);
-            const messageDiv = document.createElement('div');
-            messageDiv.classList.add('message');
-            messageDiv.innerHTML = `<p>${newMessage.content}</p>`;
-
-            // Find the h2 "Messages:" element and insert after it
-            const messagesHeader = messageContainer.querySelector('h2');
-            if (messagesHeader && messagesHeader.nextSibling) {
-                messageContainer.insertBefore(messageDiv, messagesHeader.nextSibling);
-            } else {
-                messageContainer.appendChild(messageDiv);
-            }
-        };
-
-        // Handle any errors
-        eventSource.onerror = function(event) {
-            console.error("Error with SSE connection:", event);
-        };
-    </script>
 {% endblock %}
 ```
-
 ```html
-{% extends "base.html" %}
-
-{% block title %}Home - Anonymous Messaging{% endblock %}
-
-{% block extra_css %}
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
-{% endblock %}
-
 {% block content %}
     <div class="header">
         <h1>Anonymous Messaging System</h1>
@@ -115,7 +43,8 @@
         {% endfor %}
     </div>
 {% endblock %}
-
+```
+```html
 {% block scripts %}
     <script>
         const messageContainer = document.querySelector('.messages-container');
