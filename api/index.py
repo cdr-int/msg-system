@@ -73,6 +73,7 @@ def signup():
             "username": username,
             "password": hashed_password,
             "permission_level": 0,
+            "theme": 0,  # 0 for light mode, 1 for dark mode
             "createdAt": time.time()
         })
         
@@ -93,6 +94,7 @@ def login():
             session["user_id"] = str(user["_id"])
             session["username"] = user["username"]
             session["permission_level"] = user.get("permission_level", 0)
+            session["theme"] = user.get("theme", 0)
             flash(f"Welcome back, {username}!", "success")
             return redirect(url_for("index"))
         else:
@@ -208,6 +210,67 @@ def reset_password(user_id):
         flash("Failed to reset password.", "error")
     
     return redirect(url_for("admin_dashboard"))
+
+@app.route("/settings/reset_password", methods=["POST"])
+def settings_reset_password():
+    # Check if user is logged in
+    if "user_id" not in session:
+        flash("You must be logged in to perform this action.", "error")
+        return redirect(url_for("login"))
+    
+    current_password = request.form["current_password"]
+    new_password = request.form["new_password"]
+    confirm_password = request.form["confirm_password"]
+    
+    # Verify current password
+    user = users_collection.find_one({"_id": ObjectId(session["user_id"])})
+    if not user or user["password"] != hash_password(current_password):
+        flash("Current password is incorrect.", "error")
+        return redirect(url_for("index"))
+    
+    # Check if new passwords match
+    if new_password != confirm_password:
+        flash("New passwords do not match.", "error")
+        return redirect(url_for("index"))
+    
+    # Update password
+    hashed_new_password = hash_password(new_password)
+    result = users_collection.update_one(
+        {"_id": ObjectId(session["user_id"])}, 
+        {"$set": {"password": hashed_new_password}}
+    )
+    
+    if result.modified_count > 0:
+        flash("Password updated successfully.", "success")
+    else:
+        flash("Failed to update password.", "error")
+    
+    return redirect(url_for("index"))
+
+@app.route("/settings/toggle_theme", methods=["POST"])
+def toggle_theme():
+    # Check if user is logged in
+    if "user_id" not in session:
+        flash("You must be logged in to perform this action.", "error")
+        return redirect(url_for("login"))
+    
+    # Get current theme and toggle it
+    current_theme = session.get("theme", 0)
+    new_theme = 1 if current_theme == 0 else 0
+    
+    # Update theme in database
+    result = users_collection.update_one(
+        {"_id": ObjectId(session["user_id"])}, 
+        {"$set": {"theme": new_theme}}
+    )
+    
+    if result.modified_count > 0:
+        session["theme"] = new_theme
+        flash("Theme updated successfully.", "success")
+    else:
+        flash("Failed to update theme.", "error")
+    
+    return redirect(url_for("index"))
 
 # Route to display messages and send new ones
 @app.route("/", methods=["GET", "POST"])

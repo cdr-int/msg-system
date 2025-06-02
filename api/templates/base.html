@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
     {% block extra_css %}{% endblock %}
 </head>
-<body>
+<body class="{% if session.theme == 1 %}dark-theme{% else %}light-theme{% endif %}">
     {% block content %}{% endblock %}
     {% block scripts %}{% endblock %}
 </body>

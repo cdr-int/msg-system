@@ -1,16 +1,55 @@
-
 {% extends "base.html" %}
 
 {% block title %}Admin Dashboard - Anonymous Messaging{% endblock %}
 
 {% block extra_css %}
     <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
 {% endblock %}
 
 {% block content %}
     <div class="header">
         <h1>Admin Dashboard</h1>
-        <a href="{{ url_for('index') }}" class="back-btn">Back to Messages</a>
+        <div class="header-buttons">
+            <a href="{{ url_for('index') }}" class="back-btn">Back to Messages</a>
+            <button class="settings-btn" onclick="openSettings()">Settings</button>
+            <a href="{{ url_for('logout') }}" class="logout-btn">Logout</a>
+        </div>
+    </div>
+
+    <!-- Settings Overlay -->
+    <div id="settingsOverlay" class="settings-overlay">
+        <div class="settings-modal">
+            <div class="settings-header">
+                <h2>Settings</h2>
+                <button class="close-btn" onclick="closeSettings()">&times;</button>
+            </div>
+            <div class="settings-content">
+                <!-- Theme Toggle -->
+                <div class="setting-item">
+                    <form method="POST" action="{{ url_for('toggle_theme') }}">
+                        <button type="submit" class="theme-btn">
+                            {% if session.theme == 1 %}
+                                Switch to Light Mode
+                            {% else %}
+                                Switch to Dark Mode
+                            {% endif %}
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Password Reset -->
+                <div class="setting-item">
+                    <h3>Reset Password</h3>
+                    <form method="POST" action="{{ url_for('settings_reset_password') }}" class="password-form">
+                        <input type="password" name="current_password" placeholder="Current Password" required>
+                        <input type="password" name="new_password" placeholder="New Password" required>
+                        <input type="password" name="confirm_password" placeholder="Confirm New Password" required>
+                        <button type="submit" class="reset-password-btn">Reset Password</button>
+                    </form>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Display flash messages -->
@@ -67,3 +106,13 @@
         </div>
     </div>
 {% endblock %}
+
+<script>
+function openSettings() {
+    document.getElementById("settingsOverlay").style.display = "flex";
+}
+
+function closeSettings() {
+    document.getElementById("settingsOverlay").style.display = "none";
+}
+</script>
