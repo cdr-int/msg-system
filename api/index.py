@@ -179,6 +179,36 @@ def update_permission(user_id):
     
     return redirect(url_for("admin_dashboard"))
 
+@app.route("/admin/reset_password/<user_id>", methods=["POST"])
+def reset_password(user_id):
+    # Check if user is logged in and has admin permission
+    if "user_id" not in session:
+        flash("You must be logged in to perform this action.", "error")
+        return redirect(url_for("login"))
+    
+    if session.get("permission_level", 0) != 1:
+        flash("You do not have permission to perform this action.", "error")
+        return redirect(url_for("index"))
+    
+    # Reset the user's password to 'password123'
+    new_password = "password123"
+    hashed_password = hash_password(new_password)
+    
+    result = users_collection.update_one(
+        {"_id": ObjectId(user_id)}, 
+        {"$set": {"password": hashed_password}}
+    )
+    
+    if result.modified_count > 0:
+        # Get the username for the flash message
+        user = users_collection.find_one({"_id": ObjectId(user_id)})
+        username = user["username"] if user else "User"
+        flash(f"Password for {username} has been reset to 'password123'.", "success")
+    else:
+        flash("Failed to reset password.", "error")
+    
+    return redirect(url_for("admin_dashboard"))
+
 # Route to display messages and send new ones
 @app.route("/", methods=["GET", "POST"])
 def index():

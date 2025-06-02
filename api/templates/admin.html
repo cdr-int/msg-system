@@ -33,13 +33,18 @@
                         <span class="username">{{ user.username }}</span>
                         <span class="current-permission">Current Permission Level: {{ user.permission_level }}</span>
                     </div>
-                    <form method="POST" action="{{ url_for('update_permission', user_id=user._id) }}" class="permission-form">
-                        <select name="permission_level" class="permission-select" {% if user._id|string == session.user_id %}disabled{% endif %}>
-                            <option value="0" {% if user.permission_level == 0 %}selected{% endif %}>Regular User (0)</option>
-                            <option value="1" {% if user.permission_level == 1 %}selected{% endif %}>Admin (1)</option>
-                        </select>
-                        <button type="submit" class="{% if user._id|string == session.user_id %}update-btn-disabled{% else %}update-btn{% endif %}" {% if user._id|string == session.user_id %}disabled{% endif %}>Update</button>
-                    </form>
+                    <div class="user-actions">
+                        <form method="POST" action="{{ url_for('update_permission', user_id=user._id) }}" class="permission-form">
+                            <select name="permission_level" class="permission-select" {% if user._id|string == session.user_id %}disabled{% endif %}>
+                                <option value="0" {% if user.permission_level == 0 %}selected{% endif %}>Regular User (0)</option>
+                                <option value="1" {% if user.permission_level == 1 %}selected{% endif %}>Admin (1)</option>
+                            </select>
+                            <button type="submit" class="{% if user._id|string == session.user_id %}update-btn-disabled{% else %}update-btn{% endif %}" {% if user._id|string == session.user_id %}disabled{% endif %}>Update</button>
+                        </form>
+                        <form method="POST" action="{{ url_for('reset_password', user_id=user._id) }}" class="reset-form">
+                            <button type="submit" class="reset-btn" onclick="return confirm('Are you sure you want to reset {{ user.username }}\'s password to \'password123\'?')">Reset Password</button>
+                        </form>
+                    </div>
                 </div>
             {% endfor %}
         </div>

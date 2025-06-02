@@ -50,10 +50,23 @@
     font-size: 14px;
 }
 
+.user-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
 .permission-form {
     display: flex;
     align-items: center;
     gap: 10px;
+    margin: 0;
+    padding: 0;
+    background: none;
+    box-shadow: none;
+}
+
+.reset-form {
     margin: 0;
     padding: 0;
     background: none;
@@ -100,6 +113,21 @@
     background-color: #ecf0f1;
     color: #7f8c8d;
     cursor: not-allowed;
+}
+
+.reset-btn {
+    background-color: #f39c12;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    width: 100%;
+}
+
+.reset-btn:hover {
+    background-color: #e67e22;
 }
 
 /* Messages Section */
