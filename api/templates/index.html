@@ -30,6 +30,7 @@
         h2 {
             font-size: 24px;
             margin-bottom: 15px;
+            margin-top: 20px;
             color: #333;
         }
 
@@ -211,7 +212,7 @@
         // Create a new EventSource to listen for new messages
         const eventSource = new EventSource('/stream');
 
-        // When a new message is received, append it to the message container
+        // When a new message is received, insert it at the bottom (consistent with ascending order)
         eventSource.onmessage = function(event) {
             const newMessage = JSON.parse(event.data);
             const messageDiv = document.createElement('div');
