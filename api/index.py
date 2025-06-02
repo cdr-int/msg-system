@@ -199,24 +199,36 @@ class MongoJSONEncoder(json.JSONEncoder):
 def stream():
     # Check if user is logged in
     if "user_id" not in session:
-        return "Unauthorized", 401
+        # Return a proper SSE response instead of 401
+        def error_stream():
+            yield "event: error\ndata: unauthorized\n\n"
+        return Response(error_stream(), content_type='text/event-stream')
 
     def generate():
         last_checked_time = time.time()
 
         while True:
-            # Query the database for any new messages since the last check
-            new_messages = messages_collection.find({
-                "createdAt": {
-                    "$gt": last_checked_time
-                }
-            }).sort("createdAt", 1)
-            for message in new_messages:
-                yield f"data: {json.dumps(message, cls=MongoJSONEncoder)}\n\n"
-                last_checked_time = message[
-                    "createdAt"]  # Update the last checked time
+            try:
+                # Check if user is still logged in
+                if "user_id" not in session:
+                    yield "event: error\ndata: session_expired\n\n"
+                    break
+                    
+                # Query the database for any new messages since the last check
+                new_messages = messages_collection.find({
+                    "createdAt": {
+                        "$gt": last_checked_time
+                    }
+                }).sort("createdAt", 1)
+                for message in new_messages:
+                    yield f"data: {json.dumps(message, cls=MongoJSONEncoder)}\n\n"
+                    last_checked_time = message[
+                        "createdAt"]  # Update the last checked time
 
-            time.sleep(1)  # Wait for 1 second before checking again
+                time.sleep(1)  # Wait for 1 second before checking again
+            except Exception as e:
+                yield f"event: error\ndata: {str(e)}\n\n"
+                break
 
     return Response(generate(), content_type='text/event-stream')
 

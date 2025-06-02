@@ -73,9 +73,18 @@
             }
         };
 
-        // Handle any errors
+        // Handle custom events from server
+        eventSource.addEventListener('error', function(event) {
+            if (event.data === 'unauthorized' || event.data === 'session_expired') {
+                console.log('Session expired, redirecting to login');
+                window.location.href = '/login';
+            }
+        });
+
+        // Handle connection errors
         eventSource.onerror = function(event) {
-            console.error("Error with SSE connection:", event);
+            console.log("SSE connection error, but not logging out user");
+            // Don't redirect on connection errors, just log them
         };
     </script>
 {% endblock %}
