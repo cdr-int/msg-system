@@ -150,12 +150,6 @@ def index():
     # Check if user is logged in
     if "user_id" not in session:
         return redirect(url_for("login"))
-    
-    # Check if user has permission to send messages (permission level 1 required)
-    user_permission = session.get("permission_level", 0)
-    if user_permission != 1:
-        flash("You do not have permission to access the messaging system.", "error")
-        return redirect(url_for("login"))
 
     if request.method == "POST":
         # Check the time since the last message for this user
@@ -209,26 +203,15 @@ def stream():
         def error_stream():
             yield "event: error\ndata: unauthorized\n\n"
         return Response(error_stream(), content_type='text/event-stream')
-    
-    # Check if user has permission to access messages (permission level 1 required)
-    user_permission = session.get("permission_level", 0)
-    if user_permission != 1:
-        def permission_error_stream():
-            yield "event: error\ndata: insufficient_permission\n\n"
-        return Response(permission_error_stream(), content_type='text/event-stream')
 
     def generate():
         last_checked_time = time.time()
 
         while True:
             try:
-                # Check if user is still logged in and has permission
+                # Check if user is still logged in
                 if "user_id" not in session:
                     yield "event: error\ndata: session_expired\n\n"
-                    break
-                
-                if session.get("permission_level", 0) != 1:
-                    yield "event: error\ndata: insufficient_permission\n\n"
                     break
                     
                 # Query the database for any new messages since the last check
