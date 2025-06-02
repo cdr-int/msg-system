@@ -193,22 +193,22 @@
     <script>
         const messageContainer = document.querySelector('.messages-container');
 
-        // Create a new EventSource to listen for new messages
-        const eventSource = new EventSource('/stream');
+        async function fetchMessages() {
+            try {
+                const response = await fetch('/');
+                const html = await response.text();
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                const newMessages = doc.querySelector('.messages-container').innerHTML;
 
-        // When a new message is received, append it to the message container
-        eventSource.onmessage = function(event) {
-            const newMessage = JSON.parse(event.data);
-            const messageDiv = document.createElement('div');
-            messageDiv.classList.add('message');
-            messageDiv.innerHTML = `<p>${newMessage.content}</p>`;
-            messageContainer.appendChild(messageDiv);
-        };
+                messageContainer.innerHTML = newMessages;
+            } catch (err) {
+                console.error("Polling error:", err);
+            }
+        }
 
-        // Handle any errors
-        eventSource.onerror = function(event) {
-            console.error("Error with SSE connection:", event);
-        };
+        // Poll every 5 seconds
+        setInterval(fetchMessages, 5000);
     </script>
 </body>
 </html>
