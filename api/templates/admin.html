@@ -75,8 +75,8 @@
                     <div class="user-actions">
                         <form method="POST" action="{{ url_for('update_permission', user_id=user._id) }}" class="permission-form">
                             <select name="permission_level" class="permission-select" {% if user._id|string == session.user_id %}disabled{% endif %}>
-                                <option value="0" {% if user.permission_level == 0 %}selected{% endif %}>Regular User (0)</option>
-                                <option value="1" {% if user.permission_level == 1 %}selected{% endif %}>Admin (1)</option>
+                                <option value="0" {% if user.permission_level == 0 %}selected{% endif %}>Default User</option>
+                                <option value="1" {% if user.permission_level == 1 %}selected{% endif %}>Admin</option>
                             </select>
                             <button type="submit" class="{% if user._id|string == session.user_id %}update-btn-disabled{% else %}update-btn{% endif %}" {% if user._id|string == session.user_id %}disabled{% endif %}>Update</button>
                         </form>

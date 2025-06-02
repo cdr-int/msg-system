@@ -46,8 +46,12 @@
 }
 
 .current-permission {
+    font-size: 12px;
     color: #7f8c8d;
-    font-size: 14px;
+    font-family: monospace;
+    background-color: #ecf0f1;
+    padding: 2px 6px;
+    border-radius: 3px;
 }
 
 .user-actions {
@@ -212,6 +216,10 @@
     border-bottom: 2px solid #2980b9;
 }
 
+.dark-theme permission-form {
+    background-color:#2c3e50;
+}
+
 .dark-theme .user-item {
     background-color: #2c3e50;
     border-left: 4px solid #2980b9;
@@ -222,13 +230,13 @@
 }
 
 .dark-theme .current-permission {
+    background-color: #34495e;
     color: #bdc3c7;
 }
 
 .dark-theme .permission-select {
     background-color: #2c3e50;
     color: #ecf0f1;
-    border: 1px solid #4a6741;
 }
 
 .dark-theme .permission-select:disabled {
