@@ -8,6 +8,7 @@ import pytz
 from datetime import datetime
 import json
 from bson import ObjectId
+import hashlib
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -23,9 +24,10 @@ client = MongoClient(MONGO_URI)
 # Explicitly define the database
 db = client['anonymous_messaging']  # Replace with your database name
 messages_collection = db.messages
+users_collection = db.users
 
-# Store the timestamp of the last message sent (initially, no messages sent)
-last_message_time = 0
+# Store user-specific message cooldowns
+user_last_message_time = {}
 
 # Timezone setup
 UK_TIMEZONE = pytz.timezone('Europe/London')
@@ -51,33 +53,70 @@ scheduler.add_job(
 scheduler.start()
 
 
+def hash_password(password):
+    return hashlib.sha256(password.encode()).hexdigest()
+
+@app.route("/signup", methods=["GET", "POST"])
+def signup():
+    if request.method == "POST":
+        username = request.form["username"]
+        password = request.form["password"]
+        
+        # Check if username already exists
+        if users_collection.find_one({"username": username}):
+            flash("Username already exists!", "error")
+            return redirect(url_for("signup"))
+        
+        # Create new user
+        hashed_password = hash_password(password)
+        users_collection.insert_one({
+            "username": username,
+            "password": hashed_password,
+            "createdAt": time.time()
+        })
+        
+        flash("Account created successfully! Please log in.", "success")
+        return redirect(url_for("login"))
+    
+    return render_template("signup.html")
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if request.method == "POST":
+        username = request.form["username"]
+        password = request.form["password"]
+        
+        # Find user in database
+        user = users_collection.find_one({"username": username})
+        if user and user["password"] == hash_password(password):
+            session["user_id"] = str(user["_id"])
+            session["username"] = user["username"]
+            flash(f"Welcome back, {username}!", "success")
+            return redirect(url_for("index"))
+        else:
+            flash("Invalid username or password!", "error")
+    
+    return render_template("login.html")
+
+@app.route("/logout")
+def logout():
+    session.clear()
+    flash("You have been logged out.", "success")
+    return redirect(url_for("login"))
+
 # Route to display messages and send new ones
 @app.route("/", methods=["GET", "POST"])
 def index():
-    global last_message_time  # Use the global last_message_time variable
-
-    # Check if the username is set in the session
-    if "username" not in session:
-        if request.method == "POST" and "username" in request.form:
-            # Prevent setting the username if it's already set
-            if "username" in session:
-                flash("Username is already set!", "error")
-                return redirect(url_for("index"))
-
-            # Set the username in the session
-            session["username"] = request.form["username"]
-            flash(f"Welcome, {session['username']}!", "success")
-            return redirect(url_for("index"))
-
-    # If the username is already in the session, display the form but not for changing the username
-    if request.method == "POST":
-        flash("You cannot change the username once it's set.", "error")
-        return redirect(url_for("index"))
+    # Check if user is logged in
+    if "user_id" not in session:
+        return redirect(url_for("login"))
 
     if request.method == "POST":
-        # Check the time since the last message
+        # Check the time since the last message for this user
         current_time = time.time()
-        if current_time - last_message_time < 10:
+        user_id = session["user_id"]
+        
+        if user_id in user_last_message_time and current_time - user_last_message_time[user_id] < 10:
             # If the cooldown period hasn't passed, show an error message
             flash(
                 "You need to wait 10 seconds before sending another message.",
@@ -93,10 +132,11 @@ def index():
             # Insert the new message into MongoDB
             messages_collection.insert_one({
                 "content": message_with_username,
-                "createdAt": current_time
+                "createdAt": current_time,
+                "user_id": user_id
             })
-            # Update the last message time
-            last_message_time = current_time
+            # Update the last message time for this user
+            user_last_message_time[user_id] = current_time
             flash("Message sent successfully!", "success")
         return redirect(url_for("index"))
 
