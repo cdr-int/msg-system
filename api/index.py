@@ -59,10 +59,20 @@ def index():
     # Check if the username is set in the session
     if "username" not in session:
         if request.method == "POST" and "username" in request.form:
+            # Prevent setting the username if it's already set
+            if "username" in session:
+                flash("Username is already set!", "error")
+                return redirect(url_for("index"))
+
             # Set the username in the session
             session["username"] = request.form["username"]
             flash(f"Welcome, {session['username']}!", "success")
             return redirect(url_for("index"))
+
+    # If the username is already in the session, display the form but not for changing the username
+    if request.method == "POST":
+        flash("You cannot change the username once it's set.", "error")
+        return redirect(url_for("index"))
 
     if request.method == "POST":
         # Check the time since the last message
