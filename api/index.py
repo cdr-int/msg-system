@@ -157,6 +157,9 @@ class MongoJSONEncoder(json.JSONEncoder):
 # SSE route for streaming messages in real-time
 @app.route('/stream')
 def stream():
+    # Check if user is logged in
+    if "user_id" not in session:
+        return "Unauthorized", 401
 
     def generate():
         last_checked_time = time.time()
@@ -180,4 +183,4 @@ def stream():
 
 # Run the Flask app
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=True)
