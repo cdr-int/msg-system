@@ -1,0 +1,112 @@
+
+/* Admin Dashboard Styles */
+.admin-section {
+    max-width: 800px;
+    margin: 30px auto;
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.admin-section h2 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    color: #2c3e50;
+    border-bottom: 2px solid #3498db;
+    padding-bottom: 10px;
+}
+
+/* Users Section */
+.users-container {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.user-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    background-color: #f8f9fa;
+    border-radius: 5px;
+    border-left: 4px solid #3498db;
+}
+
+.username {
+    font-weight: bold;
+    color: #2c3e50;
+}
+
+.permission-level {
+    color: #7f8c8d;
+    font-size: 14px;
+}
+
+/* Messages Section */
+.message-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 15px;
+    margin-bottom: 15px;
+    background-color: #f8f9fa;
+    border-radius: 5px;
+    border-left: 4px solid #e74c3c;
+}
+
+.message-content {
+    flex: 1;
+    margin-right: 15px;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+.delete-form {
+    margin: 0;
+    padding: 0;
+    background: none;
+    box-shadow: none;
+}
+
+.delete-btn {
+    background-color: #e74c3c;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.delete-btn:hover {
+    background-color: #c0392b;
+}
+
+.back-btn {
+    background-color: #95a5a6;
+    color: white;
+    padding: 8px 16px;
+    text-decoration: none;
+    border-radius: 5px;
+    font-size: 14px;
+}
+
+.back-btn:hover {
+    background-color: #7f8c8d;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .message-item {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .user-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 5px;
+    }
+}

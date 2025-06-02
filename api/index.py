@@ -72,6 +72,7 @@ def signup():
         users_collection.insert_one({
             "username": username,
             "password": hashed_password,
+            "permission_level": 0,
             "createdAt": time.time()
         })
         
@@ -91,6 +92,7 @@ def login():
         if user and user["password"] == hash_password(password):
             session["user_id"] = str(user["_id"])
             session["username"] = user["username"]
+            session["permission_level"] = user.get("permission_level", 0)
             flash(f"Welcome back, {username}!", "success")
             return redirect(url_for("index"))
         else:
@@ -103,6 +105,44 @@ def logout():
     session.clear()
     flash("You have been logged out.", "success")
     return redirect(url_for("login"))
+
+@app.route("/admin")
+def admin_dashboard():
+    # Check if user is logged in
+    if "user_id" not in session:
+        flash("You must be logged in to access this page.", "error")
+        return redirect(url_for("login"))
+    
+    # Check if user has admin permission
+    if session.get("permission_level", 0) != 1:
+        flash("You do not have permission to access the admin dashboard.", "error")
+        return redirect(url_for("index"))
+    
+    # Get all users and messages for admin view
+    users = users_collection.find().sort("createdAt", -1)
+    messages = messages_collection.find().sort("createdAt", -1)
+    
+    return render_template("admin.html", users=users, messages=messages)
+
+@app.route("/admin/delete_message/<message_id>", methods=["POST"])
+def delete_message(message_id):
+    # Check if user is logged in and has admin permission
+    if "user_id" not in session:
+        flash("You must be logged in to perform this action.", "error")
+        return redirect(url_for("login"))
+    
+    if session.get("permission_level", 0) != 1:
+        flash("You do not have permission to perform this action.", "error")
+        return redirect(url_for("index"))
+    
+    # Delete the message
+    result = messages_collection.delete_one({"_id": ObjectId(message_id)})
+    if result.deleted_count > 0:
+        flash("Message deleted successfully.", "success")
+    else:
+        flash("Message not found.", "error")
+    
+    return redirect(url_for("admin_dashboard"))
 
 # Route to display messages and send new ones
 @app.route("/", methods=["GET", "POST"])

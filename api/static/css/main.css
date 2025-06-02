@@ -7,6 +7,11 @@
     margin-bottom: 20px;
 }
 
+.header-buttons {
+    display: flex;
+    gap: 10px;
+}
+
 .logout-btn {
     background-color: #e74c3c;
     color: white;
@@ -18,6 +23,19 @@
 
 .logout-btn:hover {
     background-color: #c0392b;
+}
+
+.admin-btn {
+    background-color: #9b59b6;
+    color: white;
+    padding: 8px 16px;
+    text-decoration: none;
+    border-radius: 5px;
+    font-size: 14px;
+}
+
+.admin-btn:hover {
+    background-color: #8e44ad;
 }
 
 /* Welcome message */
