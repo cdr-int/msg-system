@@ -209,11 +209,6 @@ def stream():
 
         while True:
             try:
-                # Check if user is still logged in
-                if "user_id" not in session:
-                    yield "event: error\ndata: session_expired\n\n"
-                    break
-                    
                 # Query the database for any new messages since the last check
                 new_messages = messages_collection.find({
                     "createdAt": {
