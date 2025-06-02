@@ -75,8 +75,8 @@
 
         // Handle custom events from server
         eventSource.addEventListener('error', function(event) {
-            if (event.data === 'unauthorized' || event.data === 'session_expired') {
-                console.log('Session expired, redirecting to login');
+            if (event.data === 'unauthorized' || event.data === 'session_expired' || event.data === 'insufficient_permission') {
+                console.log('Authentication/permission issue, redirecting to login');
                 window.location.href = '/login';
             }
         });
