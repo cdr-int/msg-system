@@ -107,6 +107,7 @@
     </div>
 {% endblock %}
 
+{% block scripts %}
 <script>
 function openSettings() {
     document.getElementById("settingsOverlay").style.display = "flex";
@@ -115,4 +116,13 @@ function openSettings() {
 function closeSettings() {
     document.getElementById("settingsOverlay").style.display = "none";
 }
+
+// Close overlay when clicking outside the modal
+window.onclick = function(event) {
+    const overlay = document.getElementById('settingsOverlay');
+    if (event.target === overlay) {
+        closeSettings();
+    }
+}
 </script>
+{% endblock %}

@@ -246,6 +246,14 @@
     color: #bdc3c7;
 }
 
+.dark-theme .message-content {
+    color: #ecf0f1;
+}
+
+.dark-theme .message-content p {
+    color: #ecf0f1;
+}
+
 .dark-theme .back-btn {
     background-color: #7f8c8d;
 }
