@@ -75,6 +75,18 @@
             border-radius: 8px;
         }
 
+        textarea {
+            width: 100%;
+            padding: 12px;
+            font-size: 16px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            resize: none; /* Prevent resizing */
+            font-family: Arial, sans-serif; /* Match the site font */
+            box-sizing: border-box;
+            margin-bottom: 10px;
+        }
+
         input[type="submit"] {
             background-color: #3498db;
             color: white;
@@ -111,6 +123,8 @@
             line-height: 1.5;
             color: #555;
             white-space: pre-wrap; /* This will preserve line breaks */
+            word-wrap: break-word; /* Break long words */
+            overflow-wrap: break-word; /* Modern browsers */
         }
 
         /* Responsive Design */
