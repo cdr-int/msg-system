@@ -1,0 +1,46 @@
+
+/* Authentication Container */
+.auth-container {
+    max-width: 400px;
+    margin: 50px auto;
+    background-color: #fff;
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.auth-container h1 {
+    text-align: center;
+    margin-bottom: 30px;
+    color: #3b5998;
+}
+
+/* Override button colors for auth pages */
+.auth-container input[type="submit"] {
+    width: 100%;
+    margin-bottom: 15px;
+}
+
+/* Sign up button */
+.signup-form input[type="submit"] {
+    background-color: #2ecc71;
+}
+
+.signup-form input[type="submit"]:hover {
+    background-color: #27ae60;
+}
+
+/* Auth links */
+.auth-link {
+    text-align: center;
+    margin-top: 20px;
+}
+
+.auth-link a {
+    color: #3498db;
+    text-decoration: none;
+}
+
+.auth-link a:hover {
+    text-decoration: underline;
+}

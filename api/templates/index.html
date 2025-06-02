@@ -1,177 +1,96 @@
+{% extends "base.html" %}
 
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Anonymous Messaging</title>
-    <style>
-        /* General Reset */
-        body, h1, h2, p, textarea, input {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+{% block title %}Home - Anonymous Messaging{% endblock %}
 
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f7fc;
-            color: #333;
-            padding: 20px;
-        }
+{% block extra_css %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+{% endblock %}
 
-        h1 {
-            text-align: center;
-            color: #3b5998;
-            font-size: 36px;
-            margin-bottom: 20px;
-        }
+{% block content %}
+    <div class="header">
+        <h1>Anonymous Messaging System</h1>
+        <a href="{{ url_for('logout') }}" class="logout-btn">Logout</a>
+    </div>
 
-        h2 {
-            font-size: 24px;
-            margin-bottom: 15px;
-            margin-top: 20px;
-            color: #333;
-        }
+    <!-- Display flash messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div>
+                {% for category, message in messages %}
+                    <div class="{{ category }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+        {% endif %}
 
-        /* Flash Message Styles */
-        .error {
-            color: white;
-            background-color: #e74c3c;
-            padding: 10px;
-            border-radius: 5px;
-            margin-bottom: 20px;
-            text-align: center;
-        }
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div>
+                {% for category, message in messages %}
+                    <div class="{{ category }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
 
-        .success {
-            color: white;
-            background-color: #2ecc71;
-            padding: 10px;
-            border-radius: 5px;
-            margin-bottom: 20px;
-            text-align: center;
-        }
+    <div class="form-container">
+        <h2 class="welcome-message">Welcome, {{ session['username'] }}! Send a new message:</h2>
+        <form method="POST">
+            <textarea name="content" placeholder="Write your message here..." rows="4" required></textarea><br>
+            <input type="submit" value="Send Message">
+        </form>
+    </div>
 
-        /* Header with logout */
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
+    <div class="messages-container">
+        <h2>Messages:</h2>
+        {% for message in messages %}
+            <div class="message">
+                <p>{{ message['content']|safe }}</p>  
+            </div>
+        {% endfor %}
+    </div>
+{% endblock %}
 
-        .logout-btn {
-            background-color: #e74c3c;
-            color: white;
-            padding: 8px 16px;
-            text-decoration: none;
-            border-radius: 5px;
-            font-size: 14px;
-        }
+{% block scripts %}
+    <script>
+        const messageContainer = document.querySelector('.messages-container');
 
-        .logout-btn:hover {
-            background-color: #c0392b;
-        }
+        // Create a new EventSource to listen for new messages
+        const eventSource = new EventSource('/stream');
 
-        /* Form and Message Styles */
-        form {
-            background-color: #fff;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            max-width: 600px;
-            margin: 0 auto 20px;
-        }
+        // When a new message is received, insert it at the top (consistent with descending order)
+        eventSource.onmessage = function(event) {
+            const newMessage = JSON.parse(event.data);
+            const messageDiv = document.createElement('div');
+            messageDiv.classList.add('message');
+            messageDiv.innerHTML = `<p>${newMessage.content}</p>`;
 
-        textarea {
-            width: 100%;
-            padding: 12px;
-            font-size: 16px;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            resize: none; /* Prevent resizing */
-            font-family: Arial, sans-serif; /* Match the site font */
-            box-sizing: border-box;
-            margin-bottom: 10px;
-        }
-
-        input[type="submit"] {
-            background-color: #3498db;
-            color: white;
-            padding: 12px 20px;
-            font-size: 16px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: background-color 0.3s ease;
-        }
-
-        input[type="submit"]:hover {
-            background-color: #2980b9;
-        }
-
-        /* Message List Styles */
-        .messages-container {
-            max-width: 800px;
-            margin: 20px auto;
-        }
-
-        .message {
-            background-color: #fff;
-            padding: 15px;
-            margin-bottom: 15px;
-            border-radius: 8px;
-            border: 1px solid #ddd;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-        }
-
-        .message p {
-            margin: 0;
-            font-size: 18px;
-            line-height: 1.5;
-            color: #555;
-            white-space: pre-wrap; /* This will preserve line breaks */
-            word-wrap: break-word; /* Break long words */
-            overflow-wrap: break-word; /* Modern browsers */
-        }
-
-        /* Responsive Design */
-        @media (max-width: 768px) {
-            body {
-                padding: 10px;
+            // Find the h2 "Messages:" element and insert after it
+            const messagesHeader = messageContainer.querySelector('h2');
+            if (messagesHeader && messagesHeader.nextSibling) {
+                messageContainer.insertBefore(messageDiv, messagesHeader.nextSibling);
+            } else {
+                messageContainer.appendChild(messageDiv);
             }
+        };
 
-            h1 {
-                font-size: 28px;
-            }
+        // Handle any errors
+        eventSource.onerror = function(event) {
+            console.error("Error with SSE connection:", event);
+        };
+    </script>
+{% endblock %}
+```
 
-            h2 {
-                font-size: 20px;
-            }
+```html
+{% extends "base.html" %}
 
-            form {
-                padding: 15px;
-            }
+{% block title %}Home - Anonymous Messaging{% endblock %}
 
-            textarea {
-                font-size: 14px;
-                padding: 10px;
-            }
+{% block extra_css %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+{% endblock %}
 
-            input[type="submit"] {
-                padding: 10px 15px;
-                font-size: 14px;
-            }
-
-            .header {
-                flex-direction: column;
-                gap: 10px;
-            }
-        }
-    </style>
-</head>
-<body>
+{% block content %}
     <div class="header">
         <h1>Anonymous Messaging System</h1>
         <a href="{{ url_for('logout') }}" class="logout-btn">Logout</a>
@@ -189,7 +108,7 @@
     {% endwith %}
 
     <div class="form-container">
-        <h2>Welcome, {{ session['username'] }}! Send a new message:</h2>
+        <h2 class="welcome-message">Welcome, {{ session['username'] }}! Send a new message:</h2>
         <form method="POST">
             <textarea name="content" placeholder="Write your message here..." rows="4" required></textarea><br>
             <input type="submit" value="Send Message">
@@ -204,8 +123,9 @@
             </div>
         {% endfor %}
     </div>
+{% endblock %}
 
-    <!-- JavaScript for SSE -->
+{% block scripts %}
     <script>
         const messageContainer = document.querySelector('.messages-container');
 
@@ -218,7 +138,7 @@
             const messageDiv = document.createElement('div');
             messageDiv.classList.add('message');
             messageDiv.innerHTML = `<p>${newMessage.content}</p>`;
-            
+
             // Find the h2 "Messages:" element and insert after it
             const messagesHeader = messageContainer.querySelector('h2');
             if (messagesHeader && messagesHeader.nextSibling) {
@@ -233,5 +153,4 @@
             console.error("Error with SSE connection:", event);
         };
     </script>
-</body>
-</html>
+{% endblock %}
