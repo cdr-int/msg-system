@@ -29,8 +29,17 @@
         <div class="users-container">
             {% for user in users %}
                 <div class="user-item">
-                    <span class="username">{{ user.username }}</span>
-                    <span class="permission-level">Permission Level: {{ user.permission_level }}</span>
+                    <div class="user-info">
+                        <span class="username">{{ user.username }}</span>
+                        <span class="current-permission">Current Permission Level: {{ user.permission_level }}</span>
+                    </div>
+                    <form method="POST" action="{{ url_for('update_permission', user_id=user._id) }}" class="permission-form">
+                        <select name="permission_level" class="permission-select">
+                            <option value="0" {% if user.permission_level == 0 %}selected{% endif %}>Regular User (0)</option>
+                            <option value="1" {% if user.permission_level == 1 %}selected{% endif %}>Admin (1)</option>
+                        </select>
+                        <button type="submit" class="update-btn">Update</button>
+                    </form>
                 </div>
             {% endfor %}
         </div>
@@ -41,6 +50,9 @@
         <div class="messages-container">
             {% for message in messages %}
                 <div class="message-item">
+                    <div class="message-header">
+                        <span class="message-id">Message ID: {{ message._id }}</span>
+                    </div>
                     <div class="message-content">{{ message.content|safe }}</div>
                     <form method="POST" action="{{ url_for('delete_message', message_id=message._id) }}" class="delete-form">
                         <button type="submit" class="delete-btn" onclick="return confirm('Are you sure you want to delete this message?')">Delete</button>

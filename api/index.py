@@ -144,6 +144,36 @@ def delete_message(message_id):
     
     return redirect(url_for("admin_dashboard"))
 
+@app.route("/admin/update_permission/<user_id>", methods=["POST"])
+def update_permission(user_id):
+    # Check if user is logged in and has admin permission
+    if "user_id" not in session:
+        flash("You must be logged in to perform this action.", "error")
+        return redirect(url_for("login"))
+    
+    if session.get("permission_level", 0) != 1:
+        flash("You do not have permission to perform this action.", "error")
+        return redirect(url_for("index"))
+    
+    # Get the new permission level from the form
+    new_permission_level = int(request.form["permission_level"])
+    
+    # Update the user's permission level
+    result = users_collection.update_one(
+        {"_id": ObjectId(user_id)}, 
+        {"$set": {"permission_level": new_permission_level}}
+    )
+    
+    if result.modified_count > 0:
+        # Get the username for the flash message
+        user = users_collection.find_one({"_id": ObjectId(user_id)})
+        username = user["username"] if user else "User"
+        flash(f"Permission level for {username} updated successfully.", "success")
+    else:
+        flash("Failed to update permission level.", "error")
+    
+    return redirect(url_for("admin_dashboard"))
+
 # Route to display messages and send new ones
 @app.route("/", methods=["GET", "POST"])
 def index():

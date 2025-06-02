@@ -34,21 +34,58 @@
     border-left: 4px solid #3498db;
 }
 
+.user-info {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
 .username {
     font-weight: bold;
     color: #2c3e50;
 }
 
-.permission-level {
+.current-permission {
     color: #7f8c8d;
     font-size: 14px;
+}
+
+.permission-form {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0;
+    padding: 0;
+    background: none;
+    box-shadow: none;
+}
+
+.permission-select {
+    padding: 5px 10px;
+    border: 1px solid #bdc3c7;
+    border-radius: 4px;
+    background-color: white;
+    color: #2c3e50;
+}
+
+.update-btn {
+    background-color: #27ae60;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.update-btn:hover {
+    background-color: #229954;
 }
 
 /* Messages Section */
 .message-item {
     display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
+    flex-direction: column;
     padding: 15px;
     margin-bottom: 15px;
     background-color: #f8f9fa;
@@ -56,11 +93,30 @@
     border-left: 4px solid #e74c3c;
 }
 
+.message-header {
+    display: flex;
+    justify-content: flex-start;
+    margin-bottom: 10px;
+}
+
+.message-id {
+    font-size: 12px;
+    color: #7f8c8d;
+    font-family: monospace;
+    background-color: #ecf0f1;
+    padding: 2px 6px;
+    border-radius: 3px;
+}
+
 .message-content {
     flex: 1;
-    margin-right: 15px;
+    margin-bottom: 10px;
     word-wrap: break-word;
     overflow-wrap: break-word;
+}
+
+.delete-form {
+    align-self: flex-end;
 }
 
 .delete-form {
