@@ -155,6 +155,11 @@ def update_permission(user_id):
         flash("You do not have permission to perform this action.", "error")
         return redirect(url_for("index"))
     
+    # Check if user is trying to change their own permission level
+    if user_id == session["user_id"]:
+        flash("You cannot change your own permission level.", "error")
+        return redirect(url_for("admin_dashboard"))
+    
     # Get the new permission level from the form
     new_permission_level = int(request.form["permission_level"])
     

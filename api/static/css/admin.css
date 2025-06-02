@@ -82,6 +82,26 @@
     background-color: #229954;
 }
 
+.update-btn-disabled {
+    background-color: #95a5a6;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: not-allowed;
+    font-size: 14px;
+}
+
+.update-btn-disabled:hover {
+    background-color: #95a5a6;
+}
+
+.permission-select:disabled {
+    background-color: #ecf0f1;
+    color: #7f8c8d;
+    cursor: not-allowed;
+}
+
 /* Messages Section */
 .message-item {
     display: flex;
