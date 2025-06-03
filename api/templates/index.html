@@ -99,36 +99,80 @@
             }
         }
 
+        // Real-time messaging with SSE (Server-Sent Events)
         const messageContainer = document.querySelector('.messages-container');
+        let eventSource = null;
+        let reconnectAttempts = 0;
+        const maxReconnectAttempts = 5;
 
-        const eventSource = new EventSource('/stream');
-
-        eventSource.onmessage = function(event) {
+        function connectSSE() {
             try {
-                // Parse data as array of messages
-                const newMessages = JSON.parse(event.data);
+                eventSource = new EventSource('/stream');
+                
+                eventSource.onopen = function(event) {
+                    console.log('SSE connection opened');
+                    reconnectAttempts = 0; // Reset reconnection attempts on successful connection
+                };
 
-                newMessages.forEach(message => {
-                    const content = typeof message.content === 'string' ? message.content : '';
-
-                    const messageDiv = document.createElement('div');
-                    messageDiv.classList.add('message');
-                    messageDiv.innerHTML = `<p>${content}</p>`;
-
-                    const messagesHeader = messageContainer.querySelector('h2');
-                    if (messagesHeader && messagesHeader.nextSibling) {
-                        messageContainer.insertBefore(messageDiv, messagesHeader.nextSibling);
-                    } else {
-                        messageContainer.appendChild(messageDiv);
+                eventSource.onmessage = function(event) {
+                    try {
+                        const data = JSON.parse(event.data);
+                        
+                        // Handle different message types
+                        if (data.type === 'message') {
+                            // Create new message element
+                            const messageDiv = document.createElement('div');
+                            messageDiv.classList.add('message');
+                            messageDiv.innerHTML = `<p>${data.content}</p>`;
+                            
+                            // Insert at the top of messages (after the h2 header)
+                            const messagesHeader = messageContainer.querySelector('h2');
+                            if (messagesHeader && messagesHeader.nextSibling) {
+                                messageContainer.insertBefore(messageDiv, messagesHeader.nextSibling);
+                            } else {
+                                messageContainer.appendChild(messageDiv);
+                            }
+                        } else if (data.type === 'heartbeat') {
+                            // Just keep the connection alive, no action needed
+                            console.log('Heartbeat received');
+                        } else if (data.type === 'error') {
+                            console.error('Server error:', data.message);
+                        }
+                        
+                    } catch (e) {
+                        console.error('Failed to parse SSE message:', e, event.data);
                     }
-                });
-            } catch (e) {
-                console.error('Failed to parse message:', e);
-            }
-        };
+                };
 
-        eventSource.onerror = function(event) {
-            console.log('SSE connection error');
-        };
+                eventSource.onerror = function(event) {
+                    console.error('SSE connection error');
+                    eventSource.close();
+                    
+                    // Only attempt to reconnect if we haven't exceeded max attempts
+                    if (reconnectAttempts < maxReconnectAttempts) {
+                        reconnectAttempts++;
+                        console.log(`Attempting to reconnect SSE... (${reconnectAttempts}/${maxReconnectAttempts})`);
+                        setTimeout(() => {
+                            connectSSE();
+                        }, 3000 * reconnectAttempts); // Exponential backoff
+                    } else {
+                        console.error('Max reconnection attempts reached. Please refresh the page manually.');
+                    }
+                };
+                
+            } catch (error) {
+                console.error('Failed to create SSE connection:', error);
+            }
+        }
+
+        // Initialize SSE connection
+        connectSSE();
+
+        // Close SSE connection when page is unloaded
+        window.addEventListener('beforeunload', function() {
+            if (eventSource) {
+                eventSource.close();
+            }
+        });
     </script>
 {% endblock %}

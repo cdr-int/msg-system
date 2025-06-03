@@ -357,23 +357,50 @@ def delete_user(user_id):
 @app.route("/stream")
 def stream():
     def event_stream():
-        last_id = None
+        # Start from current time to avoid sending old messages
+        last_timestamp = time.time()
+
+        # Send a heartbeat first to establish connection
+        yield "data: {\"type\": \"heartbeat\"}\n\n"
+
         while True:
-            query = {}
-            if last_id:
-                query["_id"] = {"$gt": ObjectId(last_id)}
-            messages = list(messages_collection.find(query).sort("_id", 1))
+            try:
+                # Query for messages newer than last_timestamp
+                new_messages = list(messages_collection.find({
+                    "createdAt": {"$gt": last_timestamp}
+                }).sort("createdAt", 1))
 
-            for message in messages:
-                last_id = str(message["_id"])
-                # Send message as JSON string, so client can parse it
-                data = json.dumps({"content": message["content"]})
-                print(f"Streaming message: {data}")  # Debug print, optional
-                yield f"data: {data}\n\n"
+                if new_messages:
+                    # Update last_timestamp to the newest message's timestamp
+                    last_timestamp = new_messages[-1]["createdAt"]
 
-            time.sleep(1)
+                    # Send each message individually
+                    for message in new_messages:
+                        data = json.dumps({
+                            "type": "message",
+                            "content": message["content"],
+                            "createdAt": message["createdAt"],
+                            "id": str(message["_id"])
+                        })
+                        yield f"data: {data}\n\n"
+                else:
+                    # Send heartbeat to keep connection alive
+                    yield "data: {\"type\": \"heartbeat\"}\n\n"
 
-    return Response(event_stream(), mimetype="text/event-stream")
+                time.sleep(2)  # Check for new messages every 2 seconds
+
+            except Exception as e:
+                print(f"SSE Stream error: {e}")
+                # Send error message and break
+                yield f"data: {{\"type\": \"error\", \"message\": \"Connection lost\"}}\n\n"
+                break
+
+    response = Response(event_stream(), mimetype="text/event-stream")
+    response.headers['Cache-Control'] = 'no-cache'
+    response.headers['Connection'] = 'keep-alive'
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    response.headers['X-Accel-Buffering'] = 'no'  # Disable nginx buffering
+    return response
 
 
 if __name__ == "__main__":

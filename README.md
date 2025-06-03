@@ -1,3 +1,6 @@
-# Blank App
+# Messaging App
 
-This is a blank app. See our [app configuration docs](https://docs.replit.com/replit-app/configuration#replit-app-configuration) for more information on how to configure it. Or visit the Dependencies pane to add languages, language packages, and system packages.
+This is a fun project I am making with the help of some of my college friends
+I have used a combination of replit ai, chatgpt and claud
+
+I am hosting on Vercel with Mongo DB as a databse tool
