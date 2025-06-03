@@ -345,16 +345,20 @@ def index():
 
         # Check if any restricted words are present in the content
         if any(bad_word in content_lower for bad_word in bad_words):
-            flash("Your message contains restricted words and cannot be sent.", "error")
+            flash("Your message contains restricted words and cannot be sent.",
+                  "error")
             return redirect(url_for("index"))
 
         # Proceed with normal message sending if no bad words are found
         current_time = time.time()
         user_id = session["user_id"]
 
-        if user_id in user_last_message_time and current_time - user_last_message_time[user_id] < 5:
+        if user_id in user_last_message_time and current_time - user_last_message_time[
+                user_id] < 500:
             # If the cooldown period hasn't passed, show an error message
-            flash("You need to wait 5 seconds before sending another message.", "error")
+            flash(
+                "You need to wait 500 seconds before sending another message.",
+                "error")
             return redirect(url_for("index"))
 
         if content:
