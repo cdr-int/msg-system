@@ -1,14 +1,11 @@
 {% extends "base.html" %}
-```
-```html
+
 {% block title %}Home - Anonymous Messaging{% endblock %}
-```
-```html
+
 {% block extra_css %}
     <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
 {% endblock %}
-```
-```html
+
 {% block content %}
     <div class="header">
         <h1>Anonymous Messaging System</h1>
@@ -68,7 +65,7 @@
     {% endwith %}
 
     <div class="form-container">
-        <h2 class="welcome-message">Welcome, {{ session['username'] }}! Send a new message:</h2>
+        <h2 class="welcome-message">Send a new message:</h2>
         <form method="POST">
             <textarea name="content" placeholder="Write your message here..." rows="4" required></textarea><br>
             <input type="submit" value="Send Message">
@@ -79,16 +76,14 @@
         <h2>Messages:</h2>
         {% for message in messages %}
             <div class="message">
-                <p>{{ message['content']|safe }}</p>  
+                <p>{{ message.content|safe }}</p>  
             </div>
         {% endfor %}
     </div>
 {% endblock %}
-```
-```html
+
 {% block scripts %}
     <script>
-        // Settings overlay functions
         function openSettings() {
             document.getElementById('settingsOverlay').style.display = 'flex';
         }
@@ -97,7 +92,6 @@
             document.getElementById('settingsOverlay').style.display = 'none';
         }
         
-        // Close overlay when clicking outside the modal
         window.onclick = function(event) {
             const overlay = document.getElementById('settingsOverlay');
             if (event.target === overlay) {
@@ -107,37 +101,34 @@
 
         const messageContainer = document.querySelector('.messages-container');
 
-        // Create a new EventSource to listen for new messages
         const eventSource = new EventSource('/stream');
 
-        // When a new message is received, insert it at the top (consistent with descending order)
         eventSource.onmessage = function(event) {
-            const newMessage = JSON.parse(event.data);
-            const messageDiv = document.createElement('div');
-            messageDiv.classList.add('message');
-            messageDiv.innerHTML = `<p>${newMessage.content}</p>`;
+            try {
+                const newMessage = JSON.parse(event.data);
 
-            // Find the h2 "Messages:" element and insert after it
-            const messagesHeader = messageContainer.querySelector('h2');
-            if (messagesHeader && messagesHeader.nextSibling) {
-                messageContainer.insertBefore(messageDiv, messagesHeader.nextSibling);
-            } else {
-                messageContainer.appendChild(messageDiv);
+                // Make sure content exists and is a string, fallback to empty string if missing
+                const content = typeof newMessage.content === 'string' ? newMessage.content : '';
+
+                // Create new message div
+                const messageDiv = document.createElement('div');
+                messageDiv.classList.add('message');
+                messageDiv.innerHTML = `<p>${content}</p>`;
+
+                // Insert new message right below the h2 header (keep descending order)
+                const messagesHeader = messageContainer.querySelector('h2');
+                if (messagesHeader && messagesHeader.nextSibling) {
+                    messageContainer.insertBefore(messageDiv, messagesHeader.nextSibling);
+                } else {
+                    messageContainer.appendChild(messageDiv);
+                }
+            } catch (e) {
+                console.error('Failed to parse message:', e);
             }
         };
 
-        // Handle custom events from server
-        eventSource.addEventListener('error', function(event) {
-            if (event.data === 'unauthorized' || event.data === 'session_expired' || event.data === 'insufficient_permission') {
-                console.log('Authentication/permission issue, redirecting to login');
-                window.location.href = '/login';
-            }
-        });
-
-        // Handle connection errors
         eventSource.onerror = function(event) {
-            console.log("SSE connection error, but not logging out user");
-            // Don't redirect on connection errors, just log them
+            console.log('SSE connection error');
         };
     </script>
 {% endblock %}

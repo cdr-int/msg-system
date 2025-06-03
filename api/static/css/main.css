@@ -241,12 +241,24 @@
     max-width: 800px;
 }
 
+.dark-theme .theme-btn {
+    background-color: #f4f7fc;
+    color: #555;
+}
+
+.dark-theme .setting-item h3 {
+    color: #ecf0f1;
+}
+
+.dark-theme input[type="password"]::placeholder {
+    color: #a3a3a3;
+}
+
 .messages-container {
     margin: 30px auto;
     background-color: #fff;
     padding: 20px;
     border-radius: 8px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     max-width: 800px;
 }
 /* Responsive Design for main page */
