@@ -29,6 +29,11 @@
     cursor: pointer;
 }
 
+.back-btn span {
+    transform: translateY(-5px);
+    position: relative;
+}
+
 .svg-icon-message {
     height: 18px;
     width: 18px;

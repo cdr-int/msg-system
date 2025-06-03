@@ -19,9 +19,11 @@ app.secret_key = os.environ.get('SECRET_KEY', 'supersecretkey123')
 # Make sessions permanent and set lifetime
 app.permanent_session_lifetime = timedelta(days=7)
 
+
 @app.before_request
 def make_session_permanent():
     session.permanent = True
+
 
 # MongoDB URI (modified to include the database name directly)
 MONGO_URI = "mongodb+srv://c828522:jamie@cluster0.sfwht.mongodb.net/anonymous_messaging?retryWrites=true&w=majority&appName=Cluster0"
@@ -50,19 +52,29 @@ def clear_messages():
 
 # Create a scheduler to clear the database at midnight UK time every day
 scheduler = BackgroundScheduler(daemon=True)
-scheduler.add_job(
-    clear_messages,
-    CronTrigger(
-        hour=0,
-        minute=0,
-        second=0,
-        timezone=UK_TIMEZONE),
-    id='clear_db_at_midnight')
+scheduler.add_job(clear_messages,
+                  CronTrigger(hour=0, minute=0, second=0,
+                              timezone=UK_TIMEZONE),
+                  id='clear_db_at_midnight')
 scheduler.start()
 
 
 def hash_password(password):
     return hashlib.sha256(password.encode()).hexdigest()
+
+
+# Cache the bad words globally
+bad_words = set()
+
+
+def load_restricted_words(file_path="api/static/bad_words.txt"):
+    global bad_words
+    # Only load the words if they haven't been loaded already
+    if not bad_words:
+        with open(file_path, "r") as file:
+            # Read all lines, strip newlines, and convert to lowercase
+            bad_words = {line.strip().lower() for line in file.readlines()}
+    return bad_words
 
 
 @app.route("/signup", methods=["GET", "POST"])
@@ -129,7 +141,8 @@ def admin_dashboard():
 
     # Check if user has admin permission
     if session.get("permission_level", 0) != 1:
-        flash("You do not have permission to access the admin dashboard.", "error")
+        flash("You do not have permission to access the admin dashboard.",
+              "error")
         return redirect(url_for("index"))
 
     # Get all users and messages for admin view
@@ -182,14 +195,16 @@ def update_permission(user_id):
     # Update the user's permission level
     result = users_collection.update_one(
         {"_id": ObjectId(user_id)},
-        {"$set": {"permission_level": new_permission_level}}
-    )
+        {"$set": {
+            "permission_level": new_permission_level
+        }})
 
     if result.modified_count > 0:
         # Get the username for the flash message
         user = users_collection.find_one({"_id": ObjectId(user_id)})
         username = user["username"] if user else "User"
-        flash(f"Permission level for {username} updated successfully.", "success")
+        flash(f"Permission level for {username} updated successfully.",
+              "success")
     else:
         flash("Failed to update permission level.", "error")
 
@@ -212,15 +227,16 @@ def reset_password(user_id):
     hashed_password = hash_password(new_password)
 
     result = users_collection.update_one(
-        {"_id": ObjectId(user_id)},
-        {"$set": {"password": hashed_password}}
-    )
+        {"_id": ObjectId(user_id)}, {"$set": {
+            "password": hashed_password
+        }})
 
     if result.modified_count > 0:
         # Get the username for the flash message
         user = users_collection.find_one({"_id": ObjectId(user_id)})
         username = user["username"] if user else "User"
-        flash(f"Password for {username} has been reset to 'password123'.", "success")
+        flash(f"Password for {username} has been reset to 'password123'.",
+              "success")
     else:
         flash("Failed to reset password.", "error")
 
@@ -253,8 +269,9 @@ def settings_reset_password():
     hashed_new_password = hash_password(new_password)
     result = users_collection.update_one(
         {"_id": ObjectId(session["user_id"])},
-        {"$set": {"password": hashed_new_password}}
-    )
+        {"$set": {
+            "password": hashed_new_password
+        }})
 
     if result.modified_count > 0:
         flash("Password updated successfully.", "success")
@@ -283,10 +300,13 @@ def toggle_theme():
         # Update theme in database
         result = users_collection.update_one(
             {"_id": ObjectId(session["user_id"])},
-            {"$set": {"theme": new_theme}}
-        )
+            {"$set": {
+                "theme": new_theme
+            }})
 
-        print(f"Update result - matched: {result.matched_count}, modified: {result.modified_count}")
+        print(
+            f"Update result - matched: {result.matched_count}, modified: {result.modified_count}"
+        )
 
         if result.matched_count > 0:  # Check if user was found
             if result.modified_count > 0:
@@ -309,24 +329,34 @@ def toggle_theme():
 # Route to display messages and send new ones
 @app.route("/", methods=["GET", "POST"])
 def index():
+    # Load the restricted words (this is cached globally now, so it won't reload every time)
+    load_restricted_words()
+
     # Check if user is logged in
     if "user_id" not in session:
         return redirect(url_for("login"))
 
     if request.method == "POST":
-        # Check the time since the last message for this user
+        # Get the message content
+        content = request.form["content"]
+
+        # Convert message content to lowercase for case-insensitive comparison
+        content_lower = content.lower()
+
+        # Check if any restricted words are present in the content
+        if any(bad_word in content_lower for bad_word in bad_words):
+            flash("Your message contains restricted words and cannot be sent.", "error")
+            return redirect(url_for("index"))
+
+        # Proceed with normal message sending if no bad words are found
         current_time = time.time()
         user_id = session["user_id"]
 
         if user_id in user_last_message_time and current_time - user_last_message_time[user_id] < 5:
             # If the cooldown period hasn't passed, show an error message
-            flash(
-                "You need to wait 5 seconds before sending another message.",
-                "error")
+            flash("You need to wait 5 seconds before sending another message.", "error")
             return redirect(url_for("index"))
 
-        # Get the message content from the form
-        content = request.form["content"]
         if content:
             # Prepend the username to the message
             message_with_username = f"<strong>{session['username']}</strong>: {content}"
@@ -345,6 +375,7 @@ def index():
     # Retrieve all messages from the database
     messages = messages_collection.find().sort("createdAt", -1)
     return render_template("index.html", messages=messages)
+
 
 @app.route("/admin/delete_user/<user_id>", methods=["POST"])
 def delete_user(user_id):
@@ -370,8 +401,10 @@ def delete_user(user_id):
 
     return redirect(url_for("admin_dashboard"))
 
+
 @app.route("/stream")
 def stream():
+
     def event_stream():
         # Start from current time to avoid sending old messages
         last_timestamp = time.time()
@@ -382,9 +415,12 @@ def stream():
         while True:
             try:
                 # Query for messages newer than last_timestamp
-                new_messages = list(messages_collection.find({
-                    "createdAt": {"$gt": last_timestamp}
-                }).sort("createdAt", 1))
+                new_messages = list(
+                    messages_collection.find({
+                        "createdAt": {
+                            "$gt": last_timestamp
+                        }
+                    }).sort("createdAt", 1))
 
                 if new_messages:
                     # Update last_timestamp to the newest message's timestamp
