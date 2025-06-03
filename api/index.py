@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 import json
 from bson import ObjectId
 import hashlib
+from markupsafe import escape
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -363,7 +364,8 @@ def index():
 
         if content:
             # Prepend the username to the message
-            message_with_username = f"<strong>{session['username']}</strong>: {content}"
+            escaped_content = escape(content)
+            message_with_username = f"<strong>{session['username']}</strong>: {escaped_content}"
 
             # Insert the new message into MongoDB
             messages_collection.insert_one({
