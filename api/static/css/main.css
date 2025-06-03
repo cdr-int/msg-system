@@ -9,6 +9,40 @@
 
 .header-buttons {
     display: flex;
+    align-items: center;
+    gap: 15px; /* Adjust spacing between buttons as needed */
+}
+
+.back-btn {
+    padding: 7px 15px;
+}
+
+.admin-btn,
+.settings-btn,
+.logout-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none; /* For the anchor tags */
+    border: none; /* For the button */
+    background: transparent; /* For the button, adjust as needed */
+    cursor: pointer;
+}
+
+.svg-icon-message {
+    height: 18px;
+    width: 18px;
+    transform: translateY(3px);
+}
+
+.svg-icon {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0; /* Prevents icon from shrinking */
+}
+
+.header-buttons {
+    display: flex;
     gap: 10px;
 }
 
@@ -51,6 +85,27 @@
 .settings-btn:hover {
     background-color: #2980b9;
 }
+
+@media (max-width: 470px) {
+    .header-buttons {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+    }
+
+    .admin-btn {
+        order: -1; /* Move admin button to the top */
+    }
+
+    .settings-btn {
+        order: 0;
+    }
+
+    .logout-btn {
+        order: 1;
+    }
+}
+
 
 /* Settings Overlay */
 .settings-overlay {

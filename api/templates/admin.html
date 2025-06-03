@@ -11,9 +11,15 @@
     <div class="header">
         <h1>Admin Dashboard</h1>
         <div class="header-buttons">
-            <a href="{{ url_for('index') }}" class="back-btn">Back to Messages</a>
-            <button class="settings-btn" onclick="openSettings()">Settings</button>
-            <a href="{{ url_for('logout') }}" class="logout-btn">Logout</a>
+            <a href="{{ url_for('index') }}" class="back-btn">
+                <img src="{{ url_for('static', filename='images/message.svg') }}" alt="Messages Icon" class="svg-icon-message">
+                Back to Messages</a>
+            <button class="settings-btn" onclick="openSettings()">
+                <img src="{{ url_for('static', filename='images/settings.svg') }}" alt="Settings Icon" class="svg-icon">
+                Settings</button>
+            <a href="{{ url_for('logout') }}" class="logout-btn">
+                <img src="{{ url_for('static', filename='images/logout.svg') }}" alt="Logout Icon" class="svg-icon">
+                Logout</a>
         </div>
     </div>
 

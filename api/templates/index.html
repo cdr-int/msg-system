@@ -7,16 +7,23 @@
 {% endblock %}
 
 {% block content %}
-    <div class="header">
-        <h1>Anonymous Messaging System</h1>
-        <div class="header-buttons">
-            {% if session.permission_level == 1 %}
-                <a href="{{ url_for('admin_dashboard') }}" class="admin-btn">Admin Dashboard</a>
-            {% endif %}
-            <button class="settings-btn" onclick="openSettings()">Settings</button>
-            <a href="{{ url_for('logout') }}" class="logout-btn">Logout</a>
-        </div>
+<div class="header">
+    <h1>Anonymous Messaging System</h1>
+    <div class="header-buttons">
+        {% if session.permission_level == 1 %}
+            <a href="{{ url_for('admin_dashboard') }}" class="admin-btn">
+                <img src="{{ url_for('static', filename='images/admin.svg') }}" alt="Admin Icon" class="svg-icon">
+                Admin Dashboard</a>
+        {% endif %}
+        <button class="settings-btn" onclick="openSettings()">
+            <img src="{{ url_for('static', filename='images/settings.svg') }}" alt="Settings Icon" class="svg-icon">
+            Settings
+        </button>
+        <a href="{{ url_for('logout') }}" class="logout-btn">
+            <img src="{{ url_for('static', filename='images/logout.svg') }}" alt="Logout Icon" class="svg-icon">
+            Logout</a>
     </div>
+</div>
 
     <!-- Settings Overlay -->
     <div id="settingsOverlay" class="settings-overlay">

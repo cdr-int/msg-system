@@ -271,21 +271,37 @@ def toggle_theme():
         flash("You must be logged in to perform this action.", "error")
         return redirect(url_for("login"))
 
-    # Get current theme and toggle it
-    current_theme = session.get("theme", 0)
-    new_theme = 1 if current_theme == 0 else 0
+    try:
+        # Get current theme and toggle it
+        current_theme = session.get("theme", 0)
+        new_theme = 1 if current_theme == 0 else 0
 
-    # Update theme in database
-    result = users_collection.update_one(
-        {"_id": ObjectId(session["user_id"])},
-        {"$set": {"theme": new_theme}}
-    )
+        # Debug print to see what's happening
+        print(f"Current theme: {current_theme}, New theme: {new_theme}")
+        print(f"User ID: {session['user_id']}")
 
-    if result.modified_count > 0:
-        session["theme"] = new_theme
-        flash("Theme updated successfully.", "success")
-    else:
-        flash("Failed to update theme.", "error")
+        # Update theme in database
+        result = users_collection.update_one(
+            {"_id": ObjectId(session["user_id"])},
+            {"$set": {"theme": new_theme}}
+        )
+
+        print(f"Update result - matched: {result.matched_count}, modified: {result.modified_count}")
+
+        if result.matched_count > 0:  # Check if user was found
+            if result.modified_count > 0:
+                session["theme"] = new_theme
+                flash("Theme updated successfully.", "success")
+            else:
+                # User found but no modification (theme was already the target value)
+                session["theme"] = new_theme  # Update session anyway
+                flash("Theme updated successfully.", "success")
+        else:
+            flash("User not found in database.", "error")
+
+    except Exception as e:
+        print(f"Error updating theme: {e}")
+        flash(f"Failed to update theme: {str(e)}", "error")
 
     return redirect(url_for("index"))
 
