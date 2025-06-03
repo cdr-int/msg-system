@@ -105,23 +105,23 @@
 
         eventSource.onmessage = function(event) {
             try {
-                const newMessage = JSON.parse(event.data);
+                // Parse data as array of messages
+                const newMessages = JSON.parse(event.data);
 
-                // Make sure content exists and is a string, fallback to empty string if missing
-                const content = typeof newMessage.content === 'string' ? newMessage.content : '';
+                newMessages.forEach(message => {
+                    const content = typeof message.content === 'string' ? message.content : '';
 
-                // Create new message div
-                const messageDiv = document.createElement('div');
-                messageDiv.classList.add('message');
-                messageDiv.innerHTML = `<p>${content}</p>`;
+                    const messageDiv = document.createElement('div');
+                    messageDiv.classList.add('message');
+                    messageDiv.innerHTML = `<p>${content}</p>`;
 
-                // Insert new message right below the h2 header (keep descending order)
-                const messagesHeader = messageContainer.querySelector('h2');
-                if (messagesHeader && messagesHeader.nextSibling) {
-                    messageContainer.insertBefore(messageDiv, messagesHeader.nextSibling);
-                } else {
-                    messageContainer.appendChild(messageDiv);
-                }
+                    const messagesHeader = messageContainer.querySelector('h2');
+                    if (messagesHeader && messagesHeader.nextSibling) {
+                        messageContainer.insertBefore(messageDiv, messagesHeader.nextSibling);
+                    } else {
+                        messageContainer.appendChild(messageDiv);
+                    }
+                });
             } catch (e) {
                 console.error('Failed to parse message:', e);
             }

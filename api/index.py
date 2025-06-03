@@ -1,258 +1,380 @@
-    from flask import Flask, render_template, request, redirect, url_for, session, flash, Response
-    from werkzeug.security import generate_password_hash, check_password_hash
-    from pymongo import MongoClient
-    from bson import ObjectId
-    import json
-    import time
-    import threading
+from flask import Flask, request, render_template, redirect, url_for, flash, session, Response
+from pymongo import MongoClient
+from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.triggers.cron import CronTrigger
+import os
+import time
+import pytz
+from datetime import datetime, timedelta
+import json
+from bson import ObjectId
+import hashlib
 
-    app = Flask(__name__)
-    app.secret_key = 'your-secret-key'  # Replace with your own secret key
+# Initialize Flask app
+app = Flask(__name__)
 
-    # MongoDB setup (replace your URI as needed)
-    client = MongoClient("mongodb+srv://<username>:<password>@cluster0.mongodb.net/mydb?retryWrites=true&w=majority")
-    db = client['mydb']
+# Use a fixed secret key (replace with environment variable in production)
+app.secret_key = os.environ.get('SECRET_KEY', 'supersecretkey123')
 
-    # Collections
-    users_col = db.users
-    messages_col = db.messages
+# Make sessions permanent and set lifetime
+app.permanent_session_lifetime = timedelta(days=7)
 
-    # Helper to serialize messages for JSON output in SSE
-    def serialize_message(msg):
-        return {
-            "_id": str(msg["_id"]),
-            "content": msg.get("content", ""),
-            "createdAt": msg.get("createdAt"),
-            "user_id": msg.get("user_id")
-        }
+@app.before_request
+def make_session_permanent():
+    session.permanent = True
 
-    # Helper to serialize users for templates
-    def serialize_user(user):
-        return {
-            "_id": str(user["_id"]),
-            "username": user.get("username"),
-            "permission_level": user.get("permission_level", 0)
-        }
+# MongoDB URI (modified to include the database name directly)
+MONGO_URI = "mongodb+srv://c828522:jamie@cluster0.sfwht.mongodb.net/anonymous_messaging?retryWrites=true&w=majority&appName=Cluster0"
 
-    # Middleware to check if logged in
-    def login_required(f):
-        from functools import wraps
-        @wraps(f)
-        def decorated_function(*args, **kwargs):
-            if 'user_id' not in session:
-                return redirect(url_for('login'))
-            return f(*args, **kwargs)
-        return decorated_function
+# Set up MongoDB client
+client = MongoClient(MONGO_URI)
 
-    # Route: Home / Message board
-    @app.route('/', methods=['GET', 'POST'])
-    @login_required
-    def index():
-        if request.method == 'POST':
-            content = request.form.get('content')
-            if content:
-                messages_col.insert_one({
-                    "content": content,
-                    "createdAt": time.time(),
-                    "user_id": session['user_id']
-                })
-                flash('Message sent!', 'success')
-                # Notify listeners about new message here if you implement pubsub
-            else:
-                flash('Message cannot be empty', 'error')
+# Explicitly define the database
+db = client['anonymous_messaging']  # Replace with your database name
+messages_collection = db.messages
+users_collection = db.users
 
-            return redirect(url_for('index'))
+# Store user-specific message cooldowns
+user_last_message_time = {}
 
-        # Fetch messages sorted by createdAt descending
-        messages = list(messages_col.find().sort('createdAt', -1))
-        return render_template('index.html', messages=messages)
+# Timezone setup
+UK_TIMEZONE = pytz.timezone('Europe/London')
 
-    # Route: Login
-    @app.route('/login', methods=['GET', 'POST'])
-    def login():
-        if 'user_id' in session:
-            return redirect(url_for('index'))
 
-        if request.method == 'POST':
-            username = request.form.get('username')
-            password = request.form.get('password')
-            user = users_col.find_one({'username': username})
-            if user and check_password_hash(user['password'], password):
-                session['user_id'] = str(user['_id'])
-                session['username'] = user['username']
-                session['permission_level'] = user.get('permission_level', 0)
-                session['theme'] = user.get('theme', 0)
-                flash('Logged in successfully!', 'success')
-                return redirect(url_for('index'))
-            else:
-                flash('Invalid username or password', 'error')
+# Schedule background task for clearing the database
+def clear_messages():
+    # Clear all messages from the database
+    messages_collection.delete_many({})
+    print(f"Database cleared at {datetime.now(UK_TIMEZONE)}")
 
-        return render_template('login.html')
 
-    # Route: Signup
-    @app.route('/signup', methods=['GET', 'POST'])
-    def signup():
-        if 'user_id' in session:
-            return redirect(url_for('index'))
+# Create a scheduler to clear the database at midnight UK time every day
+scheduler = BackgroundScheduler(daemon=True)
+scheduler.add_job(
+    clear_messages,
+    CronTrigger(
+        hour=0,
+        minute=0,
+        second=0,
+        timezone=UK_TIMEZONE),
+    id='clear_db_at_midnight')
+scheduler.start()
 
-        if request.method == 'POST':
-            username = request.form.get('username')
-            password = request.form.get('password')
 
-            if users_col.find_one({'username': username}):
-                flash('Username already exists', 'error')
-                return redirect(url_for('signup'))
+def hash_password(password):
+    return hashlib.sha256(password.encode()).hexdigest()
 
-            hashed_pw = generate_password_hash(password)
-            user_id = users_col.insert_one({
-                "username": username,
-                "password": hashed_pw,
-                "permission_level": 0,
-                "theme": 0
-            }).inserted_id
 
-            flash('Account created! Please login.', 'success')
-            return redirect(url_for('login'))
+@app.route("/signup", methods=["GET", "POST"])
+def signup():
+    if request.method == "POST":
+        username = request.form["username"]
+        password = request.form["password"]
 
-        return render_template('signup.html')
+        # Check if username already exists
+        if users_collection.find_one({"username": username}):
+            flash("Username already exists!", "error")
+            return redirect(url_for("signup"))
 
-    # Route: Logout
-    @app.route('/logout')
-    @login_required
-    def logout():
-        session.clear()
-        flash('Logged out successfully!', 'success')
-        return redirect(url_for('login'))
+        # Create new user
+        hashed_password = hash_password(password)
+        users_collection.insert_one({
+            "username": username,
+            "password": hashed_password,
+            "permission_level": 0,
+            "theme": 0,  # 0 for light mode, 1 for dark mode
+            "createdAt": time.time()
+        })
 
-    # Route: Admin dashboard
-    @app.route('/admin', methods=['GET'])
-    @login_required
-    def admin_dashboard():
-        if session.get('permission_level') != 1:
-            flash('You do not have permission to access admin dashboard', 'error')
-            return redirect(url_for('index'))
+        flash("Account created successfully! Please log in.", "success")
+        return redirect(url_for("login"))
 
-        users = list(users_col.find())
-        users = [serialize_user(u) for u in users]
-        messages = list(messages_col.find().sort('createdAt', -1))
-        return render_template('admin.html', users=users, messages=messages)
+    return render_template("signup.html")
 
-    # Route: Update user permission (Admin only)
-    @app.route('/admin/update_permission/<user_id>', methods=['POST'])
-    @login_required
-    def update_permission(user_id):
-        if session.get('permission_level') != 1:
-            flash('Permission denied', 'error')
-            return redirect(url_for('index'))
 
-        if user_id == session['user_id']:
-            flash('You cannot change your own permission', 'error')
-            return redirect(url_for('admin_dashboard'))
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if request.method == "POST":
+        username = request.form["username"]
+        password = request.form["password"]
 
-        new_level = int(request.form.get('permission_level', 0))
-        users_col.update_one({'_id': ObjectId(user_id)}, {'$set': {'permission_level': new_level}})
-        flash('User permission updated', 'success')
-        return redirect(url_for('admin_dashboard'))
+        # Find user in database
+        user = users_collection.find_one({"username": username})
+        if user and user["password"] == hash_password(password):
+            session["user_id"] = str(user["_id"])
+            session["username"] = user["username"]
+            session["permission_level"] = user.get("permission_level", 0)
+            session["theme"] = user.get("theme", 0)
+            flash(f"Welcome back, {username}!", "success")
+            return redirect(url_for("index"))
+        else:
+            flash("Invalid username or password!", "error")
 
-    # Route: Reset user password (Admin only)
-    @app.route('/admin/reset_password/<user_id>', methods=['POST'])
-    @login_required
-    def reset_password(user_id):
-        if session.get('permission_level') != 1:
-            flash('Permission denied', 'error')
-            return redirect(url_for('index'))
+    return render_template("login.html")
 
-        if user_id == session['user_id']:
-            flash('You cannot reset your own password here', 'error')
-            return redirect(url_for('admin_dashboard'))
 
-        new_password = "password123"  # default reset pw
-        hashed_pw = generate_password_hash(new_password)
-        users_col.update_one({'_id': ObjectId(user_id)}, {'$set': {'password': hashed_pw}})
-        flash(f"Password reset to '{new_password}' for user", 'success')
-        return redirect(url_for('admin_dashboard'))
+@app.route("/logout")
+def logout():
+    session.clear()
+    flash("You have been logged out.", "success")
+    return redirect(url_for("login"))
 
-    # Route: Delete user (Admin only)
-    @app.route('/admin/delete_user/<user_id>', methods=['POST'])
-    @login_required
-    def delete_user(user_id):
-        if session.get('permission_level') != 1:
-            flash('Permission denied', 'error')
-            return redirect(url_for('index'))
 
-        if user_id == session['user_id']:
-            flash('You cannot delete yourself', 'error')
-            return redirect(url_for('admin_dashboard'))
+@app.route("/admin")
+def admin_dashboard():
+    # Check if user is logged in
+    if "user_id" not in session:
+        flash("You must be logged in to access this page.", "error")
+        return redirect(url_for("login"))
 
-        users_col.delete_one({'_id': ObjectId(user_id)})
-        flash('User deleted', 'success')
-        return redirect(url_for('admin_dashboard'))
+    # Check if user has admin permission
+    if session.get("permission_level", 0) != 1:
+        flash("You do not have permission to access the admin dashboard.", "error")
+        return redirect(url_for("index"))
 
-    # Route: Delete message (Admin only)
-    @app.route('/admin/delete_message/<message_id>', methods=['POST'])
-    @login_required
-    def delete_message(message_id):
-        if session.get('permission_level') != 1:
-            flash('Permission denied', 'error')
-            return redirect(url_for('index'))
+    # Get all users and messages for admin view
+    users = users_collection.find().sort("createdAt", -1)
+    messages = messages_collection.find().sort("createdAt", -1)
 
-        messages_col.delete_one({'_id': ObjectId(message_id)})
-        flash('Message deleted', 'success')
-        return redirect(url_for('admin_dashboard'))
+    return render_template("admin.html", users=users, messages=messages)
 
-    # Route: Toggle theme
-    @app.route('/toggle_theme', methods=['POST'])
-    @login_required
-    def toggle_theme():
-        current = session.get('theme', 0)
-        new_theme = 1 if current == 0 else 0
-        session['theme'] = new_theme
 
-        # Save to DB too (optional)
-        users_col.update_one({'_id': ObjectId(session['user_id'])}, {'$set': {'theme': new_theme}})
-        flash('Theme toggled', 'success')
-        return redirect(request.referrer or url_for('index'))
+@app.route("/admin/delete_message/<message_id>", methods=["POST"])
+def delete_message(message_id):
+    # Check if user is logged in and has admin permission
+    if "user_id" not in session:
+        flash("You must be logged in to perform this action.", "error")
+        return redirect(url_for("login"))
 
-    # Route: Reset password from user settings page
-    @app.route('/settings/reset_password', methods=['POST'])
-    @login_required
-    def settings_reset_password():
-        current_pw = request.form.get('current_password')
-        new_pw = request.form.get('new_password')
-        confirm_pw = request.form.get('confirm_password')
+    if session.get("permission_level", 0) != 1:
+        flash("You do not have permission to perform this action.", "error")
+        return redirect(url_for("index"))
 
-        user = users_col.find_one({'_id': ObjectId(session['user_id'])})
+    # Delete the message
+    result = messages_collection.delete_one({"_id": ObjectId(message_id)})
+    if result.deleted_count > 0:
+        flash("Message deleted successfully.", "success")
+    else:
+        flash("Message not found.", "error")
 
-        if not user or not check_password_hash(user['password'], current_pw):
-            flash('Current password is incorrect', 'error')
-            return redirect(request.referrer or url_for('index'))
+    return redirect(url_for("admin_dashboard"))
 
-        if new_pw != confirm_pw:
-            flash('New passwords do not match', 'error')
-            return redirect(request.referrer or url_for('index'))
 
-        hashed_pw = generate_password_hash(new_pw)
-        users_col.update_one({'_id': ObjectId(session['user_id'])}, {'$set': {'password': hashed_pw}})
-        flash('Password updated successfully', 'success')
-        return redirect(request.referrer or url_for('index'))
+@app.route("/admin/update_permission/<user_id>", methods=["POST"])
+def update_permission(user_id):
+    # Check if user is logged in and has admin permission
+    if "user_id" not in session:
+        flash("You must be logged in to perform this action.", "error")
+        return redirect(url_for("login"))
 
-    # SSE stream endpoint for live message updates
-    @app.route('/stream')
-    @login_required
-    def stream():
-        def event_stream():
-            last_time = time.time()
-            while True:
-                # Fetch new messages since last_time (poll every 1 sec)
-                new_msgs = list(messages_col.find({"createdAt": {"$gt": last_time}}).sort('createdAt', 1))
-                if new_msgs:
-                    for msg in new_msgs:
-                        data = json.dumps(serialize_message(msg))
-                        yield f"data: {data}\n\n"
-                    last_time = new_msgs[-1]['createdAt']
-                time.sleep(1)
-        return Response(event_stream(), mimetype='text/event-stream')
+    if session.get("permission_level", 0) != 1:
+        flash("You do not have permission to perform this action.", "error")
+        return redirect(url_for("index"))
 
-    # Run app
-    if __name__ == '__main__':
-        app.run(debug=True)
+    # Check if user is trying to change their own permission level
+    if user_id == session["user_id"]:
+        flash("You cannot change your own permission level.", "error")
+        return redirect(url_for("admin_dashboard"))
+
+    # Get the new permission level from the form
+    new_permission_level = int(request.form["permission_level"])
+
+    # Update the user's permission level
+    result = users_collection.update_one(
+        {"_id": ObjectId(user_id)},
+        {"$set": {"permission_level": new_permission_level}}
+    )
+
+    if result.modified_count > 0:
+        # Get the username for the flash message
+        user = users_collection.find_one({"_id": ObjectId(user_id)})
+        username = user["username"] if user else "User"
+        flash(f"Permission level for {username} updated successfully.", "success")
+    else:
+        flash("Failed to update permission level.", "error")
+
+    return redirect(url_for("admin_dashboard"))
+
+
+@app.route("/admin/reset_password/<user_id>", methods=["POST"])
+def reset_password(user_id):
+    # Check if user is logged in and has admin permission
+    if "user_id" not in session:
+        flash("You must be logged in to perform this action.", "error")
+        return redirect(url_for("login"))
+
+    if session.get("permission_level", 0) != 1:
+        flash("You do not have permission to perform this action.", "error")
+        return redirect(url_for("index"))
+
+    # Reset the user's password to 'password123'
+    new_password = "password123"
+    hashed_password = hash_password(new_password)
+
+    result = users_collection.update_one(
+        {"_id": ObjectId(user_id)},
+        {"$set": {"password": hashed_password}}
+    )
+
+    if result.modified_count > 0:
+        # Get the username for the flash message
+        user = users_collection.find_one({"_id": ObjectId(user_id)})
+        username = user["username"] if user else "User"
+        flash(f"Password for {username} has been reset to 'password123'.", "success")
+    else:
+        flash("Failed to reset password.", "error")
+
+    return redirect(url_for("admin_dashboard"))
+
+
+@app.route("/settings/reset_password", methods=["POST"])
+def settings_reset_password():
+    # Check if user is logged in
+    if "user_id" not in session:
+        flash("You must be logged in to perform this action.", "error")
+        return redirect(url_for("login"))
+
+    current_password = request.form["current_password"]
+    new_password = request.form["new_password"]
+    confirm_password = request.form["confirm_password"]
+
+    # Verify current password
+    user = users_collection.find_one({"_id": ObjectId(session["user_id"])})
+    if not user or user["password"] != hash_password(current_password):
+        flash("Current password is incorrect.", "error")
+        return redirect(url_for("index"))
+
+    # Check if new passwords match
+    if new_password != confirm_password:
+        flash("New passwords do not match.", "error")
+        return redirect(url_for("index"))
+
+    # Update password
+    hashed_new_password = hash_password(new_password)
+    result = users_collection.update_one(
+        {"_id": ObjectId(session["user_id"])},
+        {"$set": {"password": hashed_new_password}}
+    )
+
+    if result.modified_count > 0:
+        flash("Password updated successfully.", "success")
+    else:
+        flash("Failed to update password.", "error")
+
+    return redirect(url_for("index"))
+
+
+@app.route("/settings/toggle_theme", methods=["POST"])
+def toggle_theme():
+    # Check if user is logged in
+    if "user_id" not in session:
+        flash("You must be logged in to perform this action.", "error")
+        return redirect(url_for("login"))
+
+    # Get current theme and toggle it
+    current_theme = session.get("theme", 0)
+    new_theme = 1 if current_theme == 0 else 0
+
+    # Update theme in database
+    result = users_collection.update_one(
+        {"_id": ObjectId(session["user_id"])},
+        {"$set": {"theme": new_theme}}
+    )
+
+    if result.modified_count > 0:
+        session["theme"] = new_theme
+        flash("Theme updated successfully.", "success")
+    else:
+        flash("Failed to update theme.", "error")
+
+    return redirect(url_for("index"))
+
+
+# Route to display messages and send new ones
+@app.route("/", methods=["GET", "POST"])
+def index():
+    # Check if user is logged in
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+
+    if request.method == "POST":
+        # Check the time since the last message for this user
+        current_time = time.time()
+        user_id = session["user_id"]
+
+        if user_id in user_last_message_time and current_time - user_last_message_time[user_id] < 5:
+            # If the cooldown period hasn't passed, show an error message
+            flash(
+                "You need to wait 5 seconds before sending another message.",
+                "error")
+            return redirect(url_for("index"))
+
+        # Get the message content from the form
+        content = request.form["content"]
+        if content:
+            # Prepend the username to the message
+            message_with_username = f"<strong>{session['username']}</strong>: {content}"
+
+            # Insert the new message into MongoDB
+            messages_collection.insert_one({
+                "content": message_with_username,
+                "createdAt": current_time,
+                "user_id": user_id
+            })
+            # Update the last message time for this user
+            user_last_message_time[user_id] = current_time
+            flash("Message sent successfully!", "success")
+        return redirect(url_for("index"))
+
+    # Retrieve all messages from the database
+    messages = messages_collection.find().sort("createdAt", -1)
+    return render_template("index.html", messages=messages)
+
+@app.route("/admin/delete_user/<user_id>", methods=["POST"])
+def delete_user(user_id):
+    # Only admin can delete users
+    if "user_id" not in session:
+        flash("You must be logged in to perform this action.", "error")
+        return redirect(url_for("login"))
+
+    if session.get("permission_level", 0) != 1:
+        flash("You do not have permission to perform this action.", "error")
+        return redirect(url_for("index"))
+
+    if user_id == session["user_id"]:
+        flash("You cannot delete your own account.", "error")
+        return redirect(url_for("admin_dashboard"))
+
+    # Delete user
+    result = users_collection.delete_one({"_id": ObjectId(user_id)})
+    if result.deleted_count > 0:
+        flash("User deleted successfully.", "success")
+    else:
+        flash("User not found.", "error")
+
+    return redirect(url_for("admin_dashboard"))
+
+@app.route("/stream")
+def stream():
+    def event_stream():
+        last_id = None
+        while True:
+            query = {}
+            if last_id:
+                query["_id"] = {"$gt": ObjectId(last_id)}
+            messages = list(messages_collection.find(query).sort("_id", 1))
+
+            for message in messages:
+                last_id = str(message["_id"])
+                # Send message as JSON string, so client can parse it
+                data = json.dumps({"content": message["content"]})
+                print(f"Streaming message: {data}")  # Debug print, optional
+                yield f"data: {data}\n\n"
+
+            time.sleep(1)
+
+    return Response(event_stream(), mimetype="text/event-stream")
+
+
+if __name__ == "__main__":
+    app.run(debug=True, threaded=True)
