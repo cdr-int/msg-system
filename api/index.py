@@ -355,10 +355,10 @@ def index():
         user_id = session["user_id"]
 
         if user_id in user_last_message_time and current_time - user_last_message_time[
-                user_id] < 500:
+                user_id] < 5:
             # If the cooldown period hasn't passed, show an error message
             flash(
-                "You need to wait 500 seconds before sending another message.",
+                "You need to wait 5 seconds before sending another message.",
                 "error")
             return redirect(url_for("index"))
 
