@@ -10,6 +10,9 @@ import json
 from bson import ObjectId
 import hashlib
 from markupsafe import escape
+import re
+from markupsafe import escape, Markup
+import markdown2
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -76,6 +79,34 @@ def load_restricted_words(file_path="api/static/bad_words.txt"):
             # Read all lines, strip newlines, and convert to lowercase
             bad_words = {line.strip().lower() for line in file.readlines()}
     return bad_words
+
+
+# Updated format function (don't store as Markup object)
+def format_message_content(content):
+    # Step 1: Escape user input to prevent HTML injection
+    content = escape(content)
+
+    # Step 2: Handle underline formatting (__text__)
+    content = re.sub(r'__(.*?)__', r'<u>\1</u>', content)
+
+    # Step 3: Handle bold (**bold**) and italic (*italic*) formatting
+    content = re.sub(r'\*\*(.*?)\*\*', r'<strong>\1</strong>', content)
+    content = re.sub(r'\*(.*?)\*', r'<em>\1</em>', content)
+
+    # Step 4: Handle code blocks (```code```)
+    content = re.sub(r'```(.*?)```', r'<pre><code>\1</code></pre>', content, flags=re.DOTALL)
+
+    # Step 5: Handle inline code (`code`)
+    content = re.sub(r'`(.*?)`', r'<code>\1</code>', content)
+
+    # Step 6: Convert basic markdown features using markdown2
+    content = markdown2.markdown(content, extras=['fenced-code-blocks', 'tables'])
+
+    # Step 7: Convert any remaining newlines to <br> tags
+    content = content.replace('\n', '<br>')
+
+    # Return as string, not Markup object
+    return content
 
 
 @app.route("/signup", methods=["GET", "POST"])
@@ -327,55 +358,46 @@ def toggle_theme():
     return redirect(url_for("index"))
 
 
-# Route to display messages and send new ones
+# Updated route - store as plain string, not Markup object
 @app.route("/", methods=["GET", "POST"])
 def index():
-    # Load the restricted words (this is cached globally now, so it won't reload every time)
     load_restricted_words()
 
-    # Check if user is logged in
     if "user_id" not in session:
         return redirect(url_for("login"))
 
     if request.method == "POST":
-        # Get the message content
         content = request.form["content"]
-
-        # Convert message content to lowercase for case-insensitive comparison
         content_lower = content.lower()
 
-        # Check if any restricted words are present in the content
         if any(bad_word in content_lower for bad_word in bad_words):
-            flash("Your message contains restricted words and cannot be sent.",
-                  "error")
+            flash("Your message contains restricted words and cannot be sent.", "error")
             return redirect(url_for("index"))
 
-        # Proceed with normal message sending if no bad words are found
         current_time = time.time()
         user_id = session["user_id"]
 
-        if user_id in user_last_message_time and current_time - user_last_message_time[
-                user_id] < 5:
-            # If the cooldown period hasn't passed, show an error message
-            flash(
-                "You need to wait 5 seconds before sending another message.",
-                "error")
+        if user_id in user_last_message_time and current_time - user_last_message_time[user_id] < 5:
+            flash("You need to wait 5 seconds before sending another message.", "error")
             return redirect(url_for("index"))
 
         if content:
-            # Prepend the username to the message
-            escaped_content = escape(content)
-            message_with_username = f"<strong>{session['username']}</strong>: {escaped_content}"
+            # Format the message content
+            formatted_content = format_message_content(content)
 
-            # Insert the new message into MongoDB
+            # Create the message with username - store as plain string
+            message_with_username = f"<strong>{escape(session['username'])}</strong>: {formatted_content}"
+
+            # Insert as plain string, not Markup object
             messages_collection.insert_one({
-                "content": message_with_username,
+                "content": message_with_username,  # Store as plain string
                 "createdAt": current_time,
                 "user_id": user_id
             })
-            # Update the last message time for this user
+
             user_last_message_time[user_id] = current_time
             flash("Message sent successfully!", "success")
+
         return redirect(url_for("index"))
 
     # Retrieve all messages from the database

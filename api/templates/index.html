@@ -73,8 +73,8 @@
 
     <div class="form-container">
         <h2 class="welcome-message">Send a new message:</h2>
-        <form method="POST">
-            <textarea name="content" placeholder="Write your message here..." rows="4" required></textarea><br>
+        <form method="POST" id="messageForm">
+            <textarea name="content" id="messageTextarea" placeholder="Write your message here... (Press Enter to send, Shift+Enter for new line)" rows="4" required></textarea><br>
             <input type="submit" value="Send Message">
         </form>
     </div>
@@ -82,9 +82,7 @@
     <div class="messages-container">
         <h2>Messages:</h2>
         {% for message in messages %}
-            <div class="message">
-                <p>{{ message['content'] | safe }}</p>  
-            </div>
+        <div class="message">{{ message['content'] | safe }}</div>
         {% endfor %}
     </div>
 {% endblock %}
@@ -105,6 +103,24 @@
                 closeSettings();
             }
         }
+
+        // Handle Enter/Shift+Enter functionality for message textarea
+        document.getElementById('messageTextarea').addEventListener('keydown', function(event) {
+            if (event.key === 'Enter') {
+                if (event.shiftKey) {
+                    // Shift+Enter: Allow default behavior (new line)
+                    return;
+                } else {
+                    // Enter alone: Send the message
+                    event.preventDefault();
+                    
+                    // Check if textarea has content
+                    if (this.value.trim() !== '') {
+                        document.getElementById('messageForm').submit();
+                    }
+                }
+            }
+        });
 
         // Real-time messaging with SSE (Server-Sent Events)
         const messageContainer = document.querySelector('.messages-container');
