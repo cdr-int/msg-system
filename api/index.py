@@ -86,31 +86,33 @@ def format_message_content(content):
     # Step 1: Escape user input to prevent HTML injection
     content = escape(content)
 
-    # Step 2: Handle underline formatting (__text__)
-    content = re.sub(r'__(.*?)__', r'<u>\1</u>', content)
-
-    # Step 3: Handle bold (**bold**) and italic (*italic*) formatting
-    content = re.sub(r'\*\*(.*?)\*\*', r'<strong>\1</strong>', content)
-    content = re.sub(r'\*(.*?)\*', r'<em>\1</em>', content)
-
-    # Step 4: Handle code blocks (```code```)
+    # Step 2: Handle code blocks (```code```) - do this first to avoid formatting inside code blocks
     content = re.sub(r'```(.*?)```',
                      r'<pre><code>\1</code></pre>',
                      content,
                      flags=re.DOTALL)
 
-    # Step 5: Handle inline code (`code`)
+    # Step 3: Handle inline code (`code`)
     content = re.sub(r'`(.*?)`', r'<code>\1</code>', content)
 
-    # Step 6: Convert basic markdown features using markdown2
-    content = markdown2.markdown(content,
-                                 extras=['fenced-code-blocks', 'tables'])
+    # Step 4: Handle underline formatting (__text__)
+    content = re.sub(r'__(.*?)__', r'<u>\1</u>', content)
 
-    # Step 7: Convert any remaining newlines to <br> tags
+    # Step 5: Handle bold (**bold**)
+    content = re.sub(r'\*\*(.*?)\*\*', r'<strong>\1</strong>', content)
+
+    # Step 6: Handle italic (*italic*)
+    content = re.sub(r'\*(.*?)\*', r'<em>\1</em>', content)
+
+    # Step 7: Convert newlines to <br>
     content = content.replace('\n', '<br>')
 
-    # Return as string, not Markup object
+    # Strip leading/trailing whitespace to avoid accidental spaces
+    content = content.strip()
+
     return content
+
+
 
 
 @app.route("/signup", methods=["GET", "POST"])
