@@ -198,5 +198,12 @@
                 eventSource.close();
             }
         });
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const messageTextarea = document.getElementById('messageTextarea');
+            if (messageTextarea) {
+                messageTextarea.focus();
+            }
+        });
     </script>
 {% endblock %}
