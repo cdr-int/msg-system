@@ -5,3 +5,4 @@ flask-cors
 pytz
 markupsafe
 markdown2
+pygments

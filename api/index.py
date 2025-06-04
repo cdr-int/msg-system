@@ -13,6 +13,9 @@ from markupsafe import escape
 import re
 from markupsafe import escape, Markup
 import markdown2
+from pygments import highlight
+from pygments.lexers import get_lexer_by_name, TextLexer
+from pygments.formatters import HtmlFormatter
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -81,34 +84,43 @@ def load_restricted_words(file_path="api/static/bad_words.txt"):
     return bad_words
 
 
-# Updated format function (don't store as Markup object)
 def format_message_content(content):
-    # Step 1: Escape user input to prevent HTML injection
     content = escape(content)
 
-    # Step 2: Handle code blocks (```code```) - do this first to avoid formatting inside code blocks
-    content = re.sub(r'```(.*?)```',
-                     r'<pre><code>\1</code></pre>',
-                     content,
-                     flags=re.DOTALL)
+    def highlight_code_block(match):
+        lang = match.group(1)
+        code = match.group(2)
+        # Unescape code so Pygments highlights it correctly
+        code = code.replace('&lt;', '<').replace('&gt;', '>').replace('&amp;', '&')
+        try:
+            lexer = get_lexer_by_name(lang, stripall=True) if lang else TextLexer()
+        except Exception:
+            lexer = TextLexer()
+        formatter = HtmlFormatter(nowrap=True)
+        highlighted_code = highlight(code, lexer, formatter)
+        return f'<pre><code class="codehilite">{highlighted_code}</code></pre>'
 
-    # Step 3: Handle inline code (`code`)
-    content = re.sub(r'`(.*?)`', r'<code>\1</code>', content)
+    pattern = re.compile(r'```(?:([a-zA-Z0-9_+-]+)?\n)?(.*?)```', re.DOTALL)
+    content, n = pattern.subn(highlight_code_block, content)
+    # Debug print number of code blocks replaced
+    print(f"Code blocks replaced: {n}")
 
-    # Step 4: Handle underline formatting (__text__)
+    def inline_code_replacer(match):
+        code = match.group(1)
+        code = code.replace('&lt;', '<').replace('&gt;', '>').replace('&amp;', '&')
+        return f'<code>{code}</code>'
+
+    content = re.sub(r'`([^`\n]+)`', inline_code_replacer, content)
+
     content = re.sub(r'__(.*?)__', r'<u>\1</u>', content)
-
-    # Step 5: Handle bold (**bold**)
     content = re.sub(r'\*\*(.*?)\*\*', r'<strong>\1</strong>', content)
-
-    # Step 6: Handle italic (*italic*)
     content = re.sub(r'\*(.*?)\*', r'<em>\1</em>', content)
 
-    # Step 7: Convert newlines to <br>
-    content = content.replace('\n', '<br>')
-
-    # Strip leading/trailing whitespace to avoid accidental spaces
-    content = content.strip()
+    parts = re.split(r'(<pre><code class="codehilite">.*?</code></pre>)', content, flags=re.DOTALL)
+    for i in range(len(parts)):
+        if not parts[i].startswith('<pre><code'):
+            parts[i] = parts[i].replace('\n', '<br>')
+    content = ''.join(parts).strip()
 
     return content
 
