@@ -4,21 +4,9 @@ modules = ["python-3.11"]
 
 [nix]
 channel = "stable-24_05"
-packages = ["cowsay"]
+packages = ["python"]
 
 [[ports]]
 localPort = 5000
 externalPort = 80
 exposeLocalhost = true
-
-[workflows]
-runButton = "Run Flask App"
-
-[[workflows.workflow]]
-name = "Run Flask App"
-author = 21132816
-mode = "sequential"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "python api/index.py"

@@ -94,13 +94,17 @@ def format_message_content(content):
     content = re.sub(r'\*(.*?)\*', r'<em>\1</em>', content)
 
     # Step 4: Handle code blocks (```code```)
-    content = re.sub(r'```(.*?)```', r'<pre><code>\1</code></pre>', content, flags=re.DOTALL)
+    content = re.sub(r'```(.*?)```',
+                     r'<pre><code>\1</code></pre>',
+                     content,
+                     flags=re.DOTALL)
 
     # Step 5: Handle inline code (`code`)
     content = re.sub(r'`(.*?)`', r'<code>\1</code>', content)
 
     # Step 6: Convert basic markdown features using markdown2
-    content = markdown2.markdown(content, extras=['fenced-code-blocks', 'tables'])
+    content = markdown2.markdown(content,
+                                 extras=['fenced-code-blocks', 'tables'])
 
     # Step 7: Convert any remaining newlines to <br> tags
     content = content.replace('\n', '<br>')
@@ -371,14 +375,17 @@ def index():
         content_lower = content.lower()
 
         if any(bad_word in content_lower for bad_word in bad_words):
-            flash("Your message contains restricted words and cannot be sent.", "error")
+            flash("Your message contains restricted words and cannot be sent.",
+                  "error")
             return redirect(url_for("index"))
 
         current_time = time.time()
         user_id = session["user_id"]
 
-        if user_id in user_last_message_time and current_time - user_last_message_time[user_id] < 5:
-            flash("You need to wait 5 seconds before sending another message.", "error")
+        if user_id in user_last_message_time and current_time - user_last_message_time[
+                user_id] < 5:
+            flash("You need to wait 5 seconds before sending another message.",
+                  "error")
             return redirect(url_for("index"))
 
         if content:
@@ -386,7 +393,7 @@ def index():
             formatted_content = format_message_content(content)
 
             # Create the message with username - store as plain string
-            message_with_username = f"<strong>{escape(session['username'])}</strong>: {formatted_content}"
+            message_with_username = f"<strong class='username-highlight'>{escape(session['username'])}:</strong> {formatted_content}"
 
             # Insert as plain string, not Markup object
             messages_collection.insert_one({
