@@ -343,10 +343,6 @@ def toggle_theme():
         current_theme = session.get("theme", 0)
         new_theme = 1 if current_theme == 0 else 0
 
-        # Debug print to see what's happening
-        print(f"Current theme: {current_theme}, New theme: {new_theme}")
-        print(f"User ID: {session['user_id']}")
-
         # Update theme in database
         result = users_collection.update_one(
             {"_id": ObjectId(session["user_id"])},
@@ -354,26 +350,25 @@ def toggle_theme():
                 "theme": new_theme
             }})
 
-        print(
-            f"Update result - matched: {result.matched_count}, modified: {result.modified_count}"
-        )
-
         if result.matched_count > 0:  # Check if user was found
             if result.modified_count > 0:
                 session["theme"] = new_theme
                 flash("Theme updated successfully.", "success")
             else:
-                # User found but no modification (theme was already the target value)
                 session["theme"] = new_theme  # Update session anyway
                 flash("Theme updated successfully.", "success")
         else:
-            flash("User not found in database.", "error")
+            flash("User  not found in database.", "error")
 
     except Exception as e:
         print(f"Error updating theme: {e}")
         flash(f"Failed to update theme: {str(e)}", "error")
 
-    return redirect(url_for("index"))
+    # Store the current page in the session
+    session['current_page'] = request.referrer or url_for('index')
+
+    return redirect(session['current_page'])
+
 
 
 # Updated route - store as plain string, not Markup object
