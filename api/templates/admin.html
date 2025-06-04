@@ -139,4 +139,23 @@ window.onclick = function(event) {
     }
 }
 </script>
+<script>
+  // Save scroll position before form submits
+  document.addEventListener('DOMContentLoaded', () => {
+    // Restore scroll position if exists
+    const scrollY = sessionStorage.getItem('scrollY');
+    if (scrollY) {
+      window.scrollTo(0, parseInt(scrollY));
+      sessionStorage.removeItem('scrollY');
+    }
+
+    // Attach event listener to all forms or buttons that trigger reload
+    document.querySelectorAll('form').forEach(form => {
+      form.addEventListener('submit', () => {
+        // Save current scroll position
+        sessionStorage.setItem('scrollY', window.scrollY);
+      });
+    });
+  });
+</script>
 {% endblock %}
