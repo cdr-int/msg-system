@@ -93,7 +93,7 @@ textarea:focus {
 .dark-theme textarea:focus {
     outline: none;
     border-color: solid #4b87c3; /* Thinner border (1px) with same light blue accent */
-    box-shadow: 0 0 0 3px rgba(75, 135, 195, 0.4); /* Matching blue glow, adjusted opacity */
+    box-shadow: 0 0 0 2px rgba(75, 135, 195, 0.4); /* Matching blue glow, adjusted opacity */
 }
 
 input[type="submit"] {
