@@ -134,6 +134,21 @@
     background-color: #e67e22;
 }
 
+.reset-btn-disabled {
+    background-color: #95a5a6;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: not-allowed;
+    font-size: 14px;
+    width: 100%;
+}
+
+.reset-btn-disabled:hover {
+    background-color: #95a5a6;
+}
+
 /* Messages Section */
 .message-item {
     display: flex;
