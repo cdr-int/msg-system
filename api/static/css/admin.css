@@ -220,6 +220,10 @@
     background-color: #7f8c8d;
 }
 
+.light-theme .back-btn {
+    background-color: #95a5a6;
+}
+    
 /* Dark mode styles */
 .dark-theme .admin-section {
     background-color: #34495e;
