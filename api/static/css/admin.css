@@ -284,10 +284,9 @@
     }
 }
 
-.dark-theme .message-content strong {
-    color: rgb(63, 177, 253);
-}
-
-.message-content strong {
+.message-content strong.username-highlight {
     color: #3b5998;
+}
+.dark-theme .message-content strong.username-highlight {
+    color: rgb(63, 177, 253);
 }

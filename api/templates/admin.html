@@ -111,6 +111,8 @@
                     <div class="message-header">
                         <span class="message-id">Message ID: {{ message._id }}</span>
                     </div>
+
+                    
                     <div class="message-content">{{ message.content|safe }}</div>
                     <form method="POST" action="{{ url_for('delete_message', message_id=message._id) }}" class="delete-form">
                         <button type="submit" class="delete-btn" onclick="return confirm('Are you sure you want to delete this message?')">Delete</button>
