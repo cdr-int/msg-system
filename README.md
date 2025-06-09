@@ -2,7 +2,7 @@
 
 A Flask-based anonymous messaging web application with user authentication, admin management, message moderation, and live updates using Server-Sent Events (SSE). Hosted on Vercel with MongoDB as the database backend.
 
-![App Preview](https://via.placeholder.com/800x300?text=Anonymous+Messaging+App+Preview)
+![App Preview](/api/static/images/replit/preview.PNG)
 
 ---
 
@@ -146,6 +146,6 @@ For questions or issues, please open an issue on the repository or contact the m
 
 ✨ **Enjoy anonymous chatting! 🚀**
 
-![Chatting Illustration](https://via.placeholder.com/600x200?text=Chat+Safely+&+Anonymously)
+![Chatting Illustration](/api/static/images/replit/chatting.jpg)
 
 ---

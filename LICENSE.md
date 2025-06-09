@@ -1,6 +1,6 @@
 # MIT License
 
-© 2025 \[CDR Lmt.]
+© 2025 \[CDR Inc]
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
