@@ -1,4 +1,4 @@
-from flask import Flask, request, render_template, redirect, url_for, flash, session, Response
+from flask import Flask, request, render_template, redirect, url_for, flash, session, Response, make_response
 from pymongo import MongoClient
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
@@ -134,18 +134,38 @@ def format_message_content(content):
 def privacy():
     return render_template("privacy.html")
 
+
 @app.route("/signup", methods=["GET", "POST"])
 def signup():
     if request.method == "POST":
+        # Check cooldown cookie first
+        last_signup_time = request.cookies.get("last_signup_time")
+        current_time = time.time()
+
+        if last_signup_time:
+            try:
+                last_signup_time = float(last_signup_time)
+                if current_time - last_signup_time < 10 * 60:  # 10 minutes cooldown
+                    flash(
+                        "You must wait 10 minutes between account creations on this device.",
+                        "error")
+                    return redirect(url_for("signup"))
+            except ValueError:
+                # Invalid cookie value, ignore and continue
+                pass
+
         username = request.form["username"]
         password = request.form["password"]
 
         # Username validation
         username_errors = []
         if not (4 <= len(username) <= 15):
-            username_errors.append("Username must be between 4 and 15 characters.")
+            username_errors.append(
+                "Username must be between 4 and 15 characters.")
         if not re.match(r'^[A-Za-z0-9]+$', username):
-            username_errors.append("Username can only contain letters and numbers, no spaces or special characters.")
+            username_errors.append(
+                "Username can only contain letters and numbers, no spaces or special characters."
+            )
 
         if username_errors:
             for error in username_errors:
@@ -160,11 +180,14 @@ def signup():
         # Password validation
         password_errors = []
         if len(password) < 6:
-            password_errors.append("Password must be at least 6 characters long.")
+            password_errors.append(
+                "Password must be at least 6 characters long.")
         if not re.search(r"[A-Z]", password):
-            password_errors.append("Password must contain at least one uppercase letter.")
+            password_errors.append(
+                "Password must contain at least one uppercase letter.")
         if not re.search(r"[a-z]", password):
-            password_errors.append("Password must contain at least one lowercase letter.")
+            password_errors.append(
+                "Password must contain at least one lowercase letter.")
         if not re.search(r"\d", password):
             password_errors.append("Password must contain at least one digit.")
 
@@ -180,14 +203,20 @@ def signup():
             "password": hashed_password,
             "permission_level": 0,
             "theme": 0,
-            "createdAt": time.time()
+            "createdAt": current_time
         })
 
         flash("Account created successfully! Please log in.", "success")
-        return redirect(url_for("login"))
+
+        # Set cookie with current time, expires in 10 minutes
+        response = make_response(redirect(url_for("login")))
+        response.set_cookie("last_signup_time",
+                            str(current_time),
+                            max_age=10 * 60,
+                            httponly=True)
+        return response
 
     return render_template("signup.html")
-
 
 
 @app.route("/login", methods=["GET", "POST"])
@@ -405,6 +434,7 @@ def toggle_theme():
 
     return redirect(session['current_page'])
 
+
 @app.route("/", methods=["GET", "POST"])
 def index():
     load_restricted_words()
@@ -432,18 +462,16 @@ def index():
             return redirect(url_for("index"))
 
         if any(bad_word in content_lower for bad_word in bad_words):
-            flash(
-                "Your message contains restricted words and cannot be sent.",
-                "error")
+            flash("Your message contains restricted words and cannot be sent.",
+                  "error")
             return redirect(url_for("index"))
 
         current_time = time.time()
 
         if user_id in user_last_message_time and current_time - user_last_message_time[
                 user_id] < 5:
-            flash(
-                "You need to wait 5 seconds before sending another message.",
-                "error")
+            flash("You need to wait 5 seconds before sending another message.",
+                  "error")
             return redirect(url_for("index"))
 
         if content:
@@ -462,7 +490,6 @@ def index():
 
     messages = messages_collection.find().sort("createdAt", -1)
     return render_template("index.html", messages=messages)
-
 
 
 @app.route("/admin/delete_user/<user_id>", methods=["POST"])
