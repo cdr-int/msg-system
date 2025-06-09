@@ -318,7 +318,7 @@
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 /* Responsive Design for main page */
-@media (max-width: 768px) {
+@media (max-width: 1060px) {
     .header {
         flex-direction: column;
         gap: 10px;

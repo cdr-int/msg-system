@@ -181,7 +181,7 @@ input[type="submit"]:hover {
 }
 
 /* Responsive Design */
-@media (max-width: 768px) {
+@media (max-width: 1060px) {
     body {
         padding: 10px;
     }
