@@ -134,31 +134,42 @@ def format_message_content(content):
 def privacy():
     return render_template("privacy.html")
 
-
 @app.route("/signup", methods=["GET", "POST"])
 def signup():
     if request.method == "POST":
         username = request.form["username"]
         password = request.form["password"]
 
+        # Username validation
+        username_errors = []
+        if not (4 <= len(username) <= 15):
+            username_errors.append("Username must be between 4 and 15 characters.")
+        if not re.match(r'^[A-Za-z0-9]+$', username):
+            username_errors.append("Username can only contain letters and numbers, no spaces or special characters.")
+
+        if username_errors:
+            for error in username_errors:
+                flash(error, "error")
+            return redirect(url_for("signup"))
+
         # Check if username already exists
         if users_collection.find_one({"username": username}):
             flash("Username already exists!", "error")
             return redirect(url_for("signup"))
 
-        # Password validation checks
-        errors = []
+        # Password validation
+        password_errors = []
         if len(password) < 6:
-            errors.append("Password must be at least 6 characters long.")
+            password_errors.append("Password must be at least 6 characters long.")
         if not re.search(r"[A-Z]", password):
-            errors.append("Password must contain at least one uppercase letter.")
+            password_errors.append("Password must contain at least one uppercase letter.")
         if not re.search(r"[a-z]", password):
-            errors.append("Password must contain at least one lowercase letter.")
+            password_errors.append("Password must contain at least one lowercase letter.")
         if not re.search(r"\d", password):
-            errors.append("Password must contain at least one digit.")
+            password_errors.append("Password must contain at least one digit.")
 
-        if errors:
-            for error in errors:
+        if password_errors:
+            for error in password_errors:
                 flash(error, "error")
             return redirect(url_for("signup"))
 
@@ -168,7 +179,7 @@ def signup():
             "username": username,
             "password": hashed_password,
             "permission_level": 0,
-            "theme": 0,  # 0 for light mode, 1 for dark mode
+            "theme": 0,
             "createdAt": time.time()
         })
 
@@ -176,6 +187,7 @@ def signup():
         return redirect(url_for("login"))
 
     return render_template("signup.html")
+
 
 
 @app.route("/login", methods=["GET", "POST"])
