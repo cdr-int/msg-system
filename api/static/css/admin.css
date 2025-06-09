@@ -26,19 +26,22 @@
 .user-item {
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-items: flex-start;
     padding: 15px;
     background-color: #f8f9fa;
     border-radius: 5px;
     border-left: 4px solid #3498db;
     position: relative;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .user-info {
     display: flex;
     flex-direction: column;
     gap: 5px;
-    flex: 1;
+    flex: 0 1 auto;
+    width: fit-content;
 }
 
 .username {
@@ -54,13 +57,16 @@
     padding: 2px 6px;
     border-radius: 3px;
     display: inline-block;
+    width: fit-content;
 }
 
 .user-actions {
     display: flex;
-    align-items: center;
-    justify-content: center;
+    align-items: flex-start;
+    justify-content: flex-end;
     min-width: 50px;
+    flex-shrink: 0;
+    margin-top: 2px;
 }
 
 /* User Control Button (Cog) */
@@ -405,11 +411,13 @@
         flex-direction: column;
         align-items: flex-start;
         gap: 15px;
+        width: 100%;
     }
 
     .user-actions {
         align-self: flex-end;
         min-width: auto;
+        margin-top: 0;
     }
 
     .user-control-modal {
