@@ -303,10 +303,8 @@
 .messages-container {
     margin: 30px auto;
     background-color: #fff;
-    padding: 20px;
     border-radius: 8px;
     max-width: 800px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 /* Responsive Design for main page */
 @media (max-width: 768px) {
