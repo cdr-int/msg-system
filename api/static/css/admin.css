@@ -135,6 +135,7 @@
     justify-content: space-between;
     align-items: center;
     padding: 20px;
+    padding-top: 0px;
     border-bottom: 1px solid #ddd;
     font-size: 20px;
     margin-top: 20px;
@@ -416,27 +417,6 @@
 
     .user-actions {
         align-self: flex-end;
-        min-width: auto;
-        margin-top: 0;
-    }
-
-    .user-control-modal {
-        width: 95%;
-        margin: 10px;
-    }
-
-    .user-control-content {
-        padding: 15px;
-    }
-}
-
-@media (max-width: 400px) {
-    .user-control-header h2 {
-        font-size: 16px;
-    }
-
-    .user-control-item h3 {
-        font-size: 14px;
     }
 }
 

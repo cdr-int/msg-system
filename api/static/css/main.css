@@ -32,6 +32,10 @@
     flex-shrink: 0; /* Prevents icon from shrinking */
 }
 
+.dark-theme svg-icon {
+    color: white;
+}
+
 .header-buttons {
     display: flex;
     gap: 10px;
