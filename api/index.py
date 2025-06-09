@@ -377,8 +377,6 @@ def toggle_theme():
 
     return redirect(session['current_page'])
 
-
-# Updated route - store as plain string, not Markup object
 @app.route("/", methods=["GET", "POST"])
 def index():
     load_restricted_words()
@@ -386,22 +384,34 @@ def index():
     if "user_id" not in session:
         return redirect(url_for("login"))
 
+    user_id = session["user_id"]
+
+    # Check if user still exists in the database
+    user_exists = users_collection.find_one({"_id": ObjectId(user_id)})
+    if not user_exists:
+        # User doesn't exist anymore: clear session and redirect to login
+        session.clear()
+        flash("Your account no longer exists. You have been logged out.",
+              "error")
+        return redirect(url_for("login"))
+
     if request.method == "POST":
         content = request.form["content"]
         content_lower = content.lower()
 
         if any(bad_word in content_lower for bad_word in bad_words):
-            flash("Your message contains restricted words and cannot be sent.",
-                  "error")
+            flash(
+                "Your message contains restricted words and cannot be sent.",
+                "error")
             return redirect(url_for("index"))
 
         current_time = time.time()
-        user_id = session["user_id"]
 
         if user_id in user_last_message_time and current_time - user_last_message_time[
                 user_id] < 5:
-            flash("You need to wait 5 seconds before sending another message.",
-                  "error")
+            flash(
+                "You need to wait 5 seconds before sending another message.",
+                "error")
             return redirect(url_for("index"))
 
         if content:
