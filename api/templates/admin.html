@@ -58,6 +58,44 @@
         </div>
     </div>
 
+    <!-- User Control Overlay -->
+    <div id="userControlOverlay" class="user-control-overlay">
+        <div class="user-control-modal">
+            <div class="user-control-header">
+                <h2 id="userControlTitle">User Controls</h2>
+                <button class="close-btn" onclick="closeUserControl()">&times;</button>
+            </div>
+            <div class="user-control-content">
+                <div class="user-control-item">
+                    <h3>Permission Level</h3>
+                    <form id="permissionForm" method="POST" class="user-control-form">
+                        <select name="permission_level" class="permission-select-modal">
+                            <option value="0">Default User</option>
+                            <option value="1">Admin</option>
+                        </select>
+                        <button type="submit" class="update-btn-modal">Update Permission</button>
+                    </form>
+                </div>
+                
+                <div class="user-control-item">
+                    <h3>Reset Password</h3>
+                    <form id="resetForm" method="POST" class="user-control-form">
+                        <p class="reset-warning">This will reset the user's password to 'password123'</p>
+                        <button type="submit" class="reset-btn-modal">Reset Password</button>
+                    </form>
+                </div>
+                
+                <div class="user-control-item">
+                    <h3>Delete User</h3>
+                    <form id="deleteForm" method="POST" class="user-control-form">
+                        <p class="delete-warning">This action cannot be undone!</p>
+                        <button type="submit" class="delete-btn-modal">Delete User</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Display flash messages -->
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
@@ -79,21 +117,17 @@
                         <span class="current-permission">Current Permission Level: {{ user.permission_level }}</span>
                     </div>
                     <div class="user-actions">
-                        <form method="POST" action="{{ url_for('update_permission', user_id=user._id) }}" class="permission-form">
-                            <select name="permission_level" class="permission-select" {% if user._id|string == session.user_id %}disabled{% endif %}>
-                                <option value="0" {% if user.permission_level == 0 %}selected{% endif %}>Default User</option>
-                                <option value="1" {% if user.permission_level == 1 %}selected{% endif %}>Admin</option>
-                            </select>
-                            <button type="submit" class="{% if user._id|string == session.user_id %}update-btn-disabled{% else %}update-btn{% endif %}" {% if user._id|string == session.user_id %}disabled{% endif %}>Update</button>
-                        </form>
-                        <form method="POST" action="{{ url_for('reset_password', user_id=user._id) }}" class="reset-form">
-                            <button type="submit" class="{% if user._id|string == session.user_id %}reset-btn-disabled{% else %}reset-btn{% endif %}" {% if user._id|string == session.user_id %}disabled{% endif %} onclick="return confirm('Are you sure you want to reset {{ user.username }}\'s password to \'password123\'?')">Reset Password</button>
-                        </form>
-                        <form method="POST" action="{{ url_for('delete_user', user_id=user._id) }}" class="delete-form">
-                            <button type="submit" class="delete-btn"
-                                onclick="return confirm('Are you sure you want to delete user {{ user.username }}? This action cannot be undone.')">Delete User</button>
-                        </form>
-
+                        {% if user._id|string != session.user_id %}
+                            <button class="user-control-btn" onclick="openUserControl('{{ user.username }}', '{{ user._id }}', {{ user.permission_level }})">
+                                <svg class="cog-icon" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12 15.5A3.5 3.5 0 0 1 8.5 12A3.5 3.5 0 0 1 12 8.5a3.5 3.5 0 0 1 3.5 3.5 3.5 3.5 0 0 1-3.5 3.5m7.43-2.53c.04-.32.07-.64.07-.97 0-.33-.03-.66-.07-1l2.11-1.63c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.31-.61-.22l-2.49 1c-.52-.39-1.06-.73-1.69-.98l-.37-2.65A.506.506 0 0 0 14 2h-4c-.25 0-.46.18-.5.42l-.37 2.65c-.63.25-1.17.59-1.69.98l-2.49-1c-.22-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64L4.57 11c-.04.34-.07.67-.07 1 0 .33.03.65.07.97L2.46 14.6c-.19.15-.24.42-.12.64l2 3.46c.12.22.39.31.61.22l2.49-1c.52.39 1.06.73 1.69.98l.37 2.65c.04.24.25.42.5.42h4c.25 0 .46-.18.5-.42l.37-2.65c.63-.25 1.17-.59 1.69-.98l2.49 1c.22.09.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.66Z"/>
+                                </svg>
+                            </button>
+                        {% else %}
+                            <div class="self-user-indicator">
+                                <span>Current User</span>
+                            </div>
+                        {% endif %}
                     </div>
                 </div>
             {% endfor %}
@@ -130,11 +164,56 @@ function closeSettings() {
     document.getElementById("settingsOverlay").style.display = "none";
 }
 
+function openUserControl(username, userId, permissionLevel) {
+    const overlay = document.getElementById("userControlOverlay");
+    const title = document.getElementById("userControlTitle");
+    const permissionForm = document.getElementById("permissionForm");
+    const resetForm = document.getElementById("resetForm");
+    const deleteForm = document.getElementById("deleteForm");
+    const permissionSelect = document.querySelector(".permission-select-modal");
+    
+    // Set title
+    title.textContent = `User Controls - ${username}`;
+    
+    // Set form actions
+    permissionForm.action = `{{ url_for('update_permission', user_id='PLACEHOLDER') }}`.replace('PLACEHOLDER', userId);
+    resetForm.action = `{{ url_for('reset_password', user_id='PLACEHOLDER') }}`.replace('PLACEHOLDER', userId);
+    deleteForm.action = `{{ url_for('delete_user', user_id='PLACEHOLDER') }}`.replace('PLACEHOLDER', userId);
+    
+    // Set current permission level
+    permissionSelect.value = permissionLevel;
+    
+    // Add confirmation handlers
+    resetForm.onsubmit = function(e) {
+        if (!confirm(`Are you sure you want to reset ${username}'s password to 'password123'?`)) {
+            e.preventDefault();
+        }
+    };
+    
+    deleteForm.onsubmit = function(e) {
+        if (!confirm(`Are you sure you want to delete user ${username}? This action cannot be undone.`)) {
+            e.preventDefault();
+        }
+    };
+    
+    overlay.style.display = "flex";
+}
+
+function closeUserControl() {
+    document.getElementById("userControlOverlay").style.display = "none";
+}
+
 // Close overlay when clicking outside the modal
 window.onclick = function(event) {
-    const overlay = document.getElementById('settingsOverlay');
-    if (event.target === overlay) {
+    const settingsOverlay = document.getElementById('settingsOverlay');
+    const userControlOverlay = document.getElementById('userControlOverlay');
+    
+    if (event.target === settingsOverlay) {
         closeSettings();
+    }
+    
+    if (event.target === userControlOverlay) {
+        closeUserControl();
     }
 }
 </script>
