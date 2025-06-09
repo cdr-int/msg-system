@@ -91,9 +91,11 @@ def format_message_content(content):
         lang = match.group(1)
         code = match.group(2)
         # Unescape code so Pygments highlights it correctly
-        code = code.replace('&lt;', '<').replace('&gt;', '>').replace('&amp;', '&')
+        code = code.replace('&lt;', '<').replace('&gt;',
+                                                 '>').replace('&amp;', '&')
         try:
-            lexer = get_lexer_by_name(lang, stripall=True) if lang else TextLexer()
+            lexer = get_lexer_by_name(lang,
+                                      stripall=True) if lang else TextLexer()
         except Exception:
             lexer = TextLexer()
         formatter = HtmlFormatter(nowrap=True)
@@ -107,7 +109,8 @@ def format_message_content(content):
 
     def inline_code_replacer(match):
         code = match.group(1)
-        code = code.replace('&lt;', '<').replace('&gt;', '>').replace('&amp;', '&')
+        code = code.replace('&lt;', '<').replace('&gt;',
+                                                 '>').replace('&amp;', '&')
         return f'<code>{code}</code>'
 
     content = re.sub(r'`([^`\n]+)`', inline_code_replacer, content)
@@ -116,7 +119,9 @@ def format_message_content(content):
     content = re.sub(r'\*\*(.*?)\*\*', r'<strong>\1</strong>', content)
     content = re.sub(r'\*(.*?)\*', r'<em>\1</em>', content)
 
-    parts = re.split(r'(<pre><code class="codehilite">.*?</code></pre>)', content, flags=re.DOTALL)
+    parts = re.split(r'(<pre><code class="codehilite">.*?</code></pre>)',
+                     content,
+                     flags=re.DOTALL)
     for i in range(len(parts)):
         if not parts[i].startswith('<pre><code'):
             parts[i] = parts[i].replace('\n', '<br>')
@@ -125,6 +130,9 @@ def format_message_content(content):
     return content
 
 
+@app.route("/privacy", methods=["GET", "POST"])
+def privacy():
+    return render_template("privacy.html")
 
 
 @app.route("/signup", methods=["GET", "POST"])
@@ -368,7 +376,6 @@ def toggle_theme():
     session['current_page'] = request.referrer or url_for('index')
 
     return redirect(session['current_page'])
-
 
 
 # Updated route - store as plain string, not Markup object
