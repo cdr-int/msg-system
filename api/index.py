@@ -146,6 +146,22 @@ def signup():
             flash("Username already exists!", "error")
             return redirect(url_for("signup"))
 
+        # Password validation checks
+        errors = []
+        if len(password) < 6:
+            errors.append("Password must be at least 6 characters long.")
+        if not re.search(r"[A-Z]", password):
+            errors.append("Password must contain at least one uppercase letter.")
+        if not re.search(r"[a-z]", password):
+            errors.append("Password must contain at least one lowercase letter.")
+        if not re.search(r"\d", password):
+            errors.append("Password must contain at least one digit.")
+
+        if errors:
+            for error in errors:
+                flash(error, "error")
+            return redirect(url_for("signup"))
+
         # Create new user
         hashed_password = hash_password(password)
         users_collection.insert_one({
@@ -389,7 +405,6 @@ def index():
     # Check if user still exists in the database
     user_exists = users_collection.find_one({"_id": ObjectId(user_id)})
     if not user_exists:
-        # User doesn't exist anymore: clear session and redirect to login
         session.clear()
         flash("Your account no longer exists. You have been logged out.",
               "error")
@@ -398,6 +413,11 @@ def index():
     if request.method == "POST":
         content = request.form["content"]
         content_lower = content.lower()
+
+        # Check message length limit
+        if len(content) > 255:
+            flash("Message cannot be longer than 255 characters.", "error")
+            return redirect(url_for("index"))
 
         if any(bad_word in content_lower for bad_word in bad_words):
             flash(
@@ -415,15 +435,10 @@ def index():
             return redirect(url_for("index"))
 
         if content:
-            # Format the message content
             formatted_content = format_message_content(content)
-
-            # Create the message with username - store as plain string
             message_with_username = f"<strong class='username-highlight'>{escape(session['username'])}:</strong> {formatted_content}"
-
-            # Insert as plain string, not Markup object
             messages_collection.insert_one({
-                "content": message_with_username,  # Store as plain string
+                "content": message_with_username,
                 "createdAt": current_time,
                 "user_id": user_id
             })
@@ -433,9 +448,9 @@ def index():
 
         return redirect(url_for("index"))
 
-    # Retrieve all messages from the database
     messages = messages_collection.find().sort("createdAt", -1)
     return render_template("index.html", messages=messages)
+
 
 
 @app.route("/admin/delete_user/<user_id>", methods=["POST"])
