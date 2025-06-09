@@ -516,20 +516,35 @@ def delete_user(user_id):
 
     return redirect(url_for("admin_dashboard"))
 
-
 @app.route("/stream")
 def stream():
+    if "user_id" not in session:
+        # User not logged in, reject connection immediately
+        return Response(
+            json.dumps({
+                "type": "error",
+                "message": "Not authenticated"
+            }),
+            mimetype="application/json",
+            status=401,
+        )
+
+    user_id = session["user_id"]
 
     def event_stream():
-        # Start from current time to avoid sending old messages
         last_timestamp = time.time()
-
-        # Send a heartbeat first to establish connection
         yield "data: {\"type\": \"heartbeat\"}\n\n"
 
         while True:
             try:
-                # Query for messages newer than last_timestamp
+                # Check if user still exists
+                user_exists = users_collection.find_one(
+                    {"_id": ObjectId(user_id)})
+                if not user_exists:
+                    # Send error message and close stream
+                    yield f"data: {{\"type\": \"error\", \"message\": \"User no longer exists. Connection closing.\"}}\n\n"
+                    break
+
                 new_messages = list(
                     messages_collection.find({
                         "createdAt": {
@@ -538,10 +553,7 @@ def stream():
                     }).sort("createdAt", 1))
 
                 if new_messages:
-                    # Update last_timestamp to the newest message's timestamp
                     last_timestamp = new_messages[-1]["createdAt"]
-
-                    # Send each message individually
                     for message in new_messages:
                         data = json.dumps({
                             "type": "message",
@@ -551,14 +563,12 @@ def stream():
                         })
                         yield f"data: {data}\n\n"
                 else:
-                    # Send heartbeat to keep connection alive
                     yield "data: {\"type\": \"heartbeat\"}\n\n"
 
-                time.sleep(2)  # Check for new messages every 2 seconds
+                time.sleep(2)
 
             except Exception as e:
                 print(f"SSE Stream error: {e}")
-                # Send error message and break
                 yield f"data: {{\"type\": \"error\", \"message\": \"Connection lost\"}}\n\n"
                 break
 
@@ -566,7 +576,7 @@ def stream():
     response.headers['Cache-Control'] = 'no-cache'
     response.headers['Connection'] = 'keep-alive'
     response.headers['Access-Control-Allow-Origin'] = '*'
-    response.headers['X-Accel-Buffering'] = 'no'  # Disable nginx buffering
+    response.headers['X-Accel-Buffering'] = 'no'
     return response
 
 
