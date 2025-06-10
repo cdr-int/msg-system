@@ -327,11 +327,14 @@ def update_permission(user_id):
             return redirect(url_for("admin_dashboard"))  # <-- Changed here
 
         if target_level >= current_level:
-            flash("You cannot change permissions of users with equal or higher level.", "error")
+            flash(
+                "You cannot change permissions of users with equal or higher level.",
+                "error")
             return redirect(url_for("admin_dashboard"))  # <-- Changed here
 
         if new_permission_level > current_level:
-            flash("You cannot assign a permission level higher than your own.", "error")
+            flash("You cannot assign a permission level higher than your own.",
+                  "error")
             return redirect(url_for("admin_dashboard"))  # <-- Changed here
 
     else:
@@ -341,16 +344,18 @@ def update_permission(user_id):
     # Update the user's permission level
     result = users_collection.update_one(
         {"_id": ObjectId(user_id)},
-        {"$set": {"permission_level": new_permission_level}}
-    )
+        {"$set": {
+            "permission_level": new_permission_level
+        }})
 
     if result.modified_count > 0:
-        flash(f"Permission level for {target_user['username']} updated successfully.", "success")
+        flash(
+            f"Permission level for {target_user['username']} updated successfully.",
+            "success")
     else:
         flash("Failed to update permission level.", "error")
 
     return redirect(url_for("admin_dashboard"))
-
 
 
 @app.route("/admin/reset_password/<user_id>", methods=["POST"])
@@ -507,11 +512,11 @@ def index():
             # Check if user has admin permission and add [admin] prefix
             username_display = session['username']
             if session.get("permission_level", 0) == 1:
-                username_display = f"[mod] {username_display}"
+                username_display = f"<span class='mod-tag'>[mod]</span> {username_display}"
             elif session.get("permission_level", 0) == 2:
-                username_display = f"[admin] {username_display}"
+                username_display = f"<span class='admin-tag'>[admin]</span> {username_display}"
             elif session.get("permission_level", 0) == 3:
-                username_display = f"[owner] {username_display}"
+                username_display = f"<span class='owner-tag'>[owner]</span> {username_display}"
 
             message_with_username = f"<strong class='username-highlight'>{escape(username_display)}:</strong> {formatted_content}"
             messages_collection.insert_one({
