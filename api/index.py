@@ -290,40 +290,77 @@ def delete_message(message_id):
 
 @app.route("/admin/update_permission/<user_id>", methods=["POST"])
 def update_permission(user_id):
-    # Check if user is logged in and has owner permission (level 3)
+    # Check if user is logged in
     if "user_id" not in session:
         flash("You must be logged in to perform this action.", "error")
         return redirect(url_for("login"))
 
-    if session.get("permission_level", 0) < 3:
+    current_level = session.get("permission_level", 0)
+
+    # Minimum permission level to update permissions is Admin (2)
+    if current_level < 2:
         flash("You do not have permission to perform this action.", "error")
         return redirect(url_for("index"))
 
-    # Check if user is trying to change their own permission level
+    # Prevent changing own permission
     if user_id == session["user_id"]:
         flash("You cannot change your own permission level.", "error")
         return redirect(url_for("admin_dashboard"))
 
     # Get the new permission level from the form
-    new_permission_level = int(request.form["permission_level"])
+    try:
+        new_permission_level = int(request.form["permission_level"])
+    except (ValueError, KeyError):
+        flash("Invalid permission level.", "error")
+        return redirect(url_for("admin_dashboard"))
+
+    # Get target user's current permission level
+    target_user = users_collection.find_one({"_id": ObjectId(user_id)})
+    if not target_user:
+        flash("User not found.", "error")
+        return redirect(url_for("admin_dashboard"))
+
+    target_level = target_user.get("permission_level", 0)
+
+    # Owners (level 3) can change any permission
+    if current_level == 3:
+        pass  # No restrictions
+
+    # Admins (level 2) restrictions:
+    elif current_level == 2:
+        # Admins cannot promote users above Admin (level 2)
+        if new_permission_level > 2:
+            flash("Admins cannot assign Owner (level 3) permissions.", "error")
+            return redirect(url_for("admin_dashboard"))
+
+        # Admins cannot change permissions of users with equal or higher level
+        if target_level >= current_level:
+            flash("You cannot change permissions of users with equal or higher level.", "error")
+            return redirect(url_for("admin_dashboard"))
+
+        # Admins cannot promote users above themselves
+        if new_permission_level > current_level:
+            flash("You cannot assign a permission level higher than your own.", "error")
+            return redirect(url_for("admin_dashboard"))
+
+    else:
+        # Other permission levels cannot update permissions
+        flash("You do not have permission to perform this action.", "error")
+        return redirect(url_for("index"))
 
     # Update the user's permission level
     result = users_collection.update_one(
         {"_id": ObjectId(user_id)},
-        {"$set": {
-            "permission_level": new_permission_level
-        }})
+        {"$set": {"permission_level": new_permission_level}}
+    )
 
     if result.modified_count > 0:
-        # Get the username for the flash message
-        user = users_collection.find_one({"_id": ObjectId(user_id)})
-        username = user["username"] if user else "User"
-        flash(f"Permission level for {username} updated successfully.",
-              "success")
+        flash(f"Permission level for {target_user['username']} updated successfully.", "success")
     else:
         flash("Failed to update permission level.", "error")
 
     return redirect(url_for("admin_dashboard"))
+
 
 
 @app.route("/admin/reset_password/<user_id>", methods=["POST"])
