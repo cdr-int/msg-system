@@ -188,10 +188,10 @@
         const deleteForm = document.getElementById("deleteForm");
         const permissionSelect = document.querySelector(".permission-select-modal");
 
-        // Set title
+        // Set title with username
         title.textContent = `User Controls - ${username}`;
 
-        // Set form actions dynamically
+        // Set dynamic form action URLs using userId
         permissionForm.action = `{{ url_for('update_permission', user_id='PLACEHOLDER') }}`.replace('PLACEHOLDER', userId);
         resetForm.action = `{{ url_for('reset_password', user_id='PLACEHOLDER') }}`.replace('PLACEHOLDER', userId);
         deleteForm.action = `{{ url_for('delete_user', user_id='PLACEHOLDER') }}`.replace('PLACEHOLDER', userId);
@@ -199,11 +199,12 @@
         // Set current permission level in dropdown
         permissionSelect.value = permissionLevel;
 
-        // Remove any previous submit event listener on permissionForm to avoid duplicates
+        // Remove previous submit listener if exists to prevent duplicates
         permissionForm.onsubmit = null;
+        permissionForm.removeEventListener("submit", permissionForm._handler);
 
-        // Add new submit event listener with closure capturing username
-        permissionForm.addEventListener("submit", function handler(event) {
+        // Define submit handler that closes over username
+        function permissionSubmitHandler(event) {
             event.preventDefault();
 
             const selectedPermission = permissionSelect.value;
@@ -227,27 +228,31 @@
             }
 
             if (confirm(`Are you sure you want to update ${username}'s permission level to: ${message}`)) {
-                // Remove this listener after submit so it doesn't trigger multiple times
-                permissionForm.removeEventListener("submit", handler);
+                // Remove listener to avoid double submit then submit form
+                permissionForm.removeEventListener("submit", permissionSubmitHandler);
                 permissionForm.submit();
             }
-        });
+        }
 
-        // Confirmation for reset password
+        // Add the new submit event listener
+        permissionForm.addEventListener("submit", permissionSubmitHandler);
+        permissionForm._handler = permissionSubmitHandler;
+
+        // Confirm reset password action
         resetForm.onsubmit = function(e) {
             if (!confirm(`Are you sure you want to reset ${username}'s password to 'password123'?`)) {
                 e.preventDefault();
             }
         };
 
-        // Confirmation for delete user
+        // Confirm delete user action
         deleteForm.onsubmit = function(e) {
             if (!confirm(`Are you sure you want to delete user ${username}? This action cannot be undone.`)) {
                 e.preventDefault();
             }
         };
 
-        // Display overlay
+        // Show the user control overlay
         overlay.style.display = "flex";
     }
 
@@ -255,7 +260,7 @@
         document.getElementById("userControlOverlay").style.display = "none";
     }
 
-    // Close overlay when clicking outside the modal
+    // Close overlays if clicking outside the modal content
     window.onclick = function(event) {
         const settingsOverlay = document.getElementById('settingsOverlay');
         const userControlOverlay = document.getElementById('userControlOverlay');
@@ -269,16 +274,14 @@
         }
     };
 
-    // Save scroll position before form submits and restore on load
+    // Save and restore scroll position around page reloads
     document.addEventListener('DOMContentLoaded', () => {
-        // Restore scroll position if exists
         const scrollY = sessionStorage.getItem('scrollY');
         if (scrollY) {
             window.scrollTo(0, parseInt(scrollY));
             sessionStorage.removeItem('scrollY');
         }
 
-        // Attach event listener to all forms to save scroll position on submit
         document.querySelectorAll('form').forEach(form => {
             form.addEventListener('submit', () => {
                 sessionStorage.setItem('scrollY', window.scrollY);
@@ -286,5 +289,6 @@
         });
     });
 </script>
+
 
 {% endblock %}
