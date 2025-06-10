@@ -554,6 +554,16 @@
     color: rgb(63, 177, 253);
 }
 
-.no-permission {
-    
+.no-permission-indicator {
+    background-color: #95a5a6;
+    color: white;
+    border: none;
+    padding: 8px;
+    border-radius: 50%;
+    cursor: normal;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
