@@ -66,6 +66,7 @@
                 <button class="close-btn" onclick="closeUserControl()">&times;</button>
             </div>
             <div class="user-control-content">
+                {% if session.get('permission_level', 0) >= 2 %}
                 <div class="user-control-item">
                     <h3>Permission Level</h3>
                     <form id="permissionForm" method="POST" class="user-control-form">
@@ -73,11 +74,15 @@
                             <option value="0">Default User</option>
                             <option value="1">Mod</option>
                             <option value="2">Admin</option>
-                            <option value="3">Owner</option>
+                            {% if session.get('permission_level', 0) == 3 %}
+                                <option value="3">Owner</option>  <!-- Only Owners (3) can see this -->
+                            {% endif %}
                         </select>
                         <button type="submit" class="update-btn-modal">Update Permission</button>
                     </form>
                 </div>
+                {% endif %}
+
                 
                 <div class="user-control-item">
                     <h3>Reset Password</h3>
