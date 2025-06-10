@@ -553,13 +553,3 @@
 .dark-theme .message-content strong.username-highlight {
     color: rgb(63, 177, 253);
 }
-
-.admin-tag {
-    color: #3b5998;
-    font-weight: bold;  
-}
-
-.dark-theme .admin-tag {
-    color: rgb(63, 177, 253);
-    font-weight: bold;
-}
