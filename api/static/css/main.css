@@ -331,3 +331,7 @@
 .dark-theme .message strong.username-highlight {
     color: rgb(63, 177, 253);
 }
+
+.owner-tag { color: #ffea70; font-weight: bold; }
+.admin-tag { color: #ff8080; font-weight: bold; }
+.mod-tag { color: #6babff; font-weight: bold; }

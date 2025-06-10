@@ -114,8 +114,12 @@
                 <div class="user-item">
                     <div class="user-info">
                         <span class="username">
-                            {% if user.permission_level == 1 %}
-                                <span class="admin-tag">[admin]</span>
+                            {% if user.permission_level == 3 %}
+                                <span class="owner-tag">[Owner]</span>
+                            {% elif user.permission_level == 2 %}
+                                <span class="admin-tag">[Admin]</span>
+                            {% elif user.permission_level == 1 %}
+                                <span class="mod-tag">[Mod]</span>
                             {% endif %}
                             {{ user.username }}
                         </span>
