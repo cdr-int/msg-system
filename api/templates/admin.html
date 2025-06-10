@@ -113,7 +113,12 @@
             {% for user in users %}
                 <div class="user-item">
                     <div class="user-info">
-                        <span class="username">{{ user.username }}</span>
+                        <span class="username">
+                            {% if user.permission_level == 1 %}
+                                <span class="admin-tag">[admin]</span>
+                            {% endif %}
+                            {{ user.username }}
+                        </span>
                         <span class="current-permission">Current Permission Level: {{ user.permission_level }}</span>
                     </div>
                     <div class="user-actions">

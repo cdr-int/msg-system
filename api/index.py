@@ -33,13 +33,13 @@ def make_session_permanent():
 
 
 # MongoDB URI (modified to include the database name directly)
-MONGO_URI = "mongodb+srv://c828522:jamie@cluster0.sfwht.mongodb.net/anonymous_messaging?retryWrites=true&w=majority&appName=Cluster0"
+MONGO_URI = "mongodb+srv://c828522:jamie@cluster0.sfwht.mongodb.net/pulse_chat_db?retryWrites=true&w=majority&appName=Cluster0"
 
 # Set up MongoDB client
 client = MongoClient(MONGO_URI)
 
 # Explicitly define the database
-db = client['anonymous_messaging']  # Replace with your database name
+db = client['pulse_chat_db']  # Replace with your database name
 messages_collection = db.messages
 users_collection = db.users
 
@@ -476,7 +476,15 @@ def index():
 
         if content:
             formatted_content = format_message_content(content)
-            message_with_username = f"<strong class='username-highlight'>{escape(session['username'])}:</strong> {formatted_content}"
+
+            # Check if user has admin permission and add [admin] prefix
+            username_display = session['username']
+            if session.get("permission_level", 0) == 1:
+                username_display = f"[admin] {username_display}"
+            elif session.get("permission_level", 0) == 2:
+                username_display = f"[owner] {username_display}"
+
+            message_with_username = f"<strong class='username-highlight'>{escape(username_display)}:</strong> {formatted_content}"
             messages_collection.insert_one({
                 "content": message_with_username,
                 "createdAt": current_time,
@@ -515,6 +523,7 @@ def delete_user(user_id):
         flash("User not found.", "error")
 
     return redirect(url_for("admin_dashboard"))
+
 
 @app.route("/stream")
 def stream():

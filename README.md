@@ -1,4 +1,4 @@
-# 🕵️‍♂️ Anonymous Messaging App 💬
+# 🕵️‍♂️ Pulse Chat 💬
 
 A Flask-based anonymous messaging web application with user authentication, admin management, message moderation, and live updates using Server-Sent Events (SSE). Hosted on Vercel with MongoDB as the database backend.
 

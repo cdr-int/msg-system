@@ -1,0 +1,5 @@
+add admin tags to users
+ip banning
+account muting
+lock chat
+timestamps
