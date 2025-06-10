@@ -255,7 +255,7 @@ def admin_dashboard():
         return redirect(url_for("login"))
 
     # Check if user has admin permission
-    if session.get("permission_level", 0) != 1:
+    if session.get("permission_level", 0) < 1:
         flash("You do not have permission to access the admin dashboard.",
               "error")
         return redirect(url_for("index"))
@@ -274,7 +274,7 @@ def delete_message(message_id):
         flash("You must be logged in to perform this action.", "error")
         return redirect(url_for("login"))
 
-    if session.get("permission_level", 0) != 1:
+    if session.get("permission_level", 0) < 1:
         flash("You do not have permission to perform this action.", "error")
         return redirect(url_for("index"))
 
@@ -295,7 +295,7 @@ def update_permission(user_id):
         flash("You must be logged in to perform this action.", "error")
         return redirect(url_for("login"))
 
-    if session.get("permission_level", 0) != 1:
+    if session.get("permission_level", 0) < 2:
         flash("You do not have permission to perform this action.", "error")
         return redirect(url_for("index"))
 
@@ -333,7 +333,7 @@ def reset_password(user_id):
         flash("You must be logged in to perform this action.", "error")
         return redirect(url_for("login"))
 
-    if session.get("permission_level", 0) != 1:
+    if session.get("permission_level", 0) < 1:
         flash("You do not have permission to perform this action.", "error")
         return redirect(url_for("index"))
 
@@ -480,8 +480,10 @@ def index():
             # Check if user has admin permission and add [admin] prefix
             username_display = session['username']
             if session.get("permission_level", 0) == 1:
-                username_display = f"[admin] {username_display}"
+                username_display = f"[mod] {username_display}"
             elif session.get("permission_level", 0) == 2:
+                username_display = f"[admin] {username_display}"
+            elif session.get("permission_level", 0) == 3:
                 username_display = f"[owner] {username_display}"
 
             message_with_username = f"<strong class='username-highlight'>{escape(username_display)}:</strong> {formatted_content}"
@@ -507,7 +509,7 @@ def delete_user(user_id):
         flash("You must be logged in to perform this action.", "error")
         return redirect(url_for("login"))
 
-    if session.get("permission_level", 0) != 1:
+    if session.get("permission_level", 0) < 2:
         flash("You do not have permission to perform this action.", "error")
         return redirect(url_for("index"))
 
