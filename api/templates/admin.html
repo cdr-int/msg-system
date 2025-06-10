@@ -199,13 +199,48 @@
         // Set current permission level in dropdown
         permissionSelect.value = permissionLevel;
 
-        // Add confirmation handlers
+        // Remove any previous submit event listener on permissionForm to avoid duplicates
+        permissionForm.onsubmit = null;
+
+        // Add new submit event listener with closure capturing username
+        permissionForm.addEventListener("submit", function handler(event) {
+            event.preventDefault();
+
+            const selectedPermission = permissionSelect.value;
+
+            let message = "";
+            switch (selectedPermission) {
+                case "0":
+                    message = "User set to Default User.";
+                    break;
+                case "1":
+                    message = "User promoted to Mod.";
+                    break;
+                case "2":
+                    message = "User promoted to Admin.";
+                    break;
+                case "3":
+                    message = "User promoted to Owner.";
+                    break;
+                default:
+                    message = "Invalid permission level selected.";
+            }
+
+            if (confirm(`Are you sure you want to update ${username}'s permission level to: ${message}`)) {
+                // Remove this listener after submit so it doesn't trigger multiple times
+                permissionForm.removeEventListener("submit", handler);
+                permissionForm.submit();
+            }
+        });
+
+        // Confirmation for reset password
         resetForm.onsubmit = function(e) {
             if (!confirm(`Are you sure you want to reset ${username}'s password to 'password123'?`)) {
                 e.preventDefault();
             }
         };
 
+        // Confirmation for delete user
         deleteForm.onsubmit = function(e) {
             if (!confirm(`Are you sure you want to delete user ${username}? This action cannot be undone.`)) {
                 e.preventDefault();
@@ -234,53 +269,22 @@
         }
     };
 
-    // Handle permission level updates dynamically
-    document.getElementById("permissionForm").addEventListener("submit", function(event) {
-        event.preventDefault(); // Prevent default form submission
-
-        const selectedPermission = document.querySelector(".permission-select-modal").value;
-
-        // Confirmation message based on permission level
-        let message = "";
-        switch (selectedPermission) {
-            case "0":
-                message = "User set to Default User.";
-                break;
-            case "1":
-                message = "User promoted to Mod.";
-                break;
-            case "2":
-                message = "User promoted to Admin.";
-                break;
-            case "3":
-                message = "User promoted to Owner.";
-                break;
-            default:
-                message = "Invalid permission level selected.";
+    // Save scroll position before form submits and restore on load
+    document.addEventListener('DOMContentLoaded', () => {
+        // Restore scroll position if exists
+        const scrollY = sessionStorage.getItem('scrollY');
+        if (scrollY) {
+            window.scrollTo(0, parseInt(scrollY));
+            sessionStorage.removeItem('scrollY');
         }
 
-        if (confirm(`Are you sure you want to update ${username}'s permission level to: ${message}`)) {
-            this.submit(); // Submit the form after confirmation
-        }
+        // Attach event listener to all forms to save scroll position on submit
+        document.querySelectorAll('form').forEach(form => {
+            form.addEventListener('submit', () => {
+                sessionStorage.setItem('scrollY', window.scrollY);
+            });
+        });
     });
 </script>
-<script>
-  // Save scroll position before form submits
-  document.addEventListener('DOMContentLoaded', () => {
-    // Restore scroll position if exists
-    const scrollY = sessionStorage.getItem('scrollY');
-    if (scrollY) {
-      window.scrollTo(0, parseInt(scrollY));
-      sessionStorage.removeItem('scrollY');
-    }
 
-    // Attach event listener to all forms or buttons that trigger reload
-    document.querySelectorAll('form').forEach(form => {
-      form.addEventListener('submit', () => {
-        // Save current scroll position
-        sessionStorage.setItem('scrollY', window.scrollY);
-      });
-    });
-  });
-</script>
 {% endblock %}
