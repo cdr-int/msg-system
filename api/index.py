@@ -290,7 +290,6 @@ def delete_message(message_id):
 
 @app.route("/admin/update_permission/<user_id>", methods=["POST"])
 def update_permission(user_id):
-    # Check if user is logged in
     if "user_id" not in session:
         flash("You must be logged in to perform this action.", "error")
         return redirect(url_for("login"))
@@ -300,53 +299,44 @@ def update_permission(user_id):
     # Minimum permission level to update permissions is Admin (2)
     if current_level < 2:
         flash("You do not have permission to perform this action.", "error")
-        return redirect(url_for("index"))
+        return redirect(url_for("admin_dashboard"))  # <-- Changed here
 
-    # Prevent changing own permission
     if user_id == session["user_id"]:
         flash("You cannot change your own permission level.", "error")
-        return redirect(url_for("admin_dashboard"))
+        return redirect(url_for("admin_dashboard"))  # <-- Changed here
 
-    # Get the new permission level from the form
     try:
         new_permission_level = int(request.form["permission_level"])
     except (ValueError, KeyError):
         flash("Invalid permission level.", "error")
-        return redirect(url_for("admin_dashboard"))
+        return redirect(url_for("admin_dashboard"))  # <-- Changed here
 
-    # Get target user's current permission level
     target_user = users_collection.find_one({"_id": ObjectId(user_id)})
     if not target_user:
         flash("User not found.", "error")
-        return redirect(url_for("admin_dashboard"))
+        return redirect(url_for("admin_dashboard"))  # <-- Changed here
 
     target_level = target_user.get("permission_level", 0)
 
-    # Owners (level 3) can change any permission
     if current_level == 3:
-        pass  # No restrictions
+        pass  # Owner can do anything
 
-    # Admins (level 2) restrictions:
     elif current_level == 2:
-        # Admins cannot promote users above Admin (level 2)
         if new_permission_level > 2:
             flash("Admins cannot assign Owner (level 3) permissions.", "error")
-            return redirect(url_for("admin_dashboard"))
+            return redirect(url_for("admin_dashboard"))  # <-- Changed here
 
-        # Admins cannot change permissions of users with equal or higher level
         if target_level >= current_level:
             flash("You cannot change permissions of users with equal or higher level.", "error")
-            return redirect(url_for("admin_dashboard"))
+            return redirect(url_for("admin_dashboard"))  # <-- Changed here
 
-        # Admins cannot promote users above themselves
         if new_permission_level > current_level:
             flash("You cannot assign a permission level higher than your own.", "error")
-            return redirect(url_for("admin_dashboard"))
+            return redirect(url_for("admin_dashboard"))  # <-- Changed here
 
     else:
-        # Other permission levels cannot update permissions
         flash("You do not have permission to perform this action.", "error")
-        return redirect(url_for("index"))
+        return redirect(url_for("admin_dashboard"))  # <-- Changed here
 
     # Update the user's permission level
     result = users_collection.update_one(
