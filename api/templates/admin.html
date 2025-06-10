@@ -71,7 +71,9 @@
                     <form id="permissionForm" method="POST" class="user-control-form">
                         <select name="permission_level" class="permission-select-modal">
                             <option value="0">Default User</option>
-                            <option value="1">Admin</option>
+                            <option value="1">Mod</option>
+                            <option value="2">Admin</option>
+                            <option value="3">Owner</option>
                         </select>
                         <button type="submit" class="update-btn-modal">Update Permission</button>
                     </form>
@@ -165,66 +167,97 @@
 
 {% block scripts %}
 <script>
-function openSettings() {
-    document.getElementById("settingsOverlay").style.display = "flex";
-}
+    function openSettings() {
+        document.getElementById("settingsOverlay").style.display = "flex";
+    }
 
-function closeSettings() {
-    document.getElementById("settingsOverlay").style.display = "none";
-}
+    function closeSettings() {
+        document.getElementById("settingsOverlay").style.display = "none";
+    }
 
-function openUserControl(username, userId, permissionLevel) {
-    const overlay = document.getElementById("userControlOverlay");
-    const title = document.getElementById("userControlTitle");
-    const permissionForm = document.getElementById("permissionForm");
-    const resetForm = document.getElementById("resetForm");
-    const deleteForm = document.getElementById("deleteForm");
-    const permissionSelect = document.querySelector(".permission-select-modal");
-    
-    // Set title
-    title.textContent = `User Controls - ${username}`;
-    
-    // Set form actions
-    permissionForm.action = `{{ url_for('update_permission', user_id='PLACEHOLDER') }}`.replace('PLACEHOLDER', userId);
-    resetForm.action = `{{ url_for('reset_password', user_id='PLACEHOLDER') }}`.replace('PLACEHOLDER', userId);
-    deleteForm.action = `{{ url_for('delete_user', user_id='PLACEHOLDER') }}`.replace('PLACEHOLDER', userId);
-    
-    // Set current permission level
-    permissionSelect.value = permissionLevel;
-    
-    // Add confirmation handlers
-    resetForm.onsubmit = function(e) {
-        if (!confirm(`Are you sure you want to reset ${username}'s password to 'password123'?`)) {
-            e.preventDefault();
+    function openUserControl(username, userId, permissionLevel) {
+        const overlay = document.getElementById("userControlOverlay");
+        const title = document.getElementById("userControlTitle");
+        const permissionForm = document.getElementById("permissionForm");
+        const resetForm = document.getElementById("resetForm");
+        const deleteForm = document.getElementById("deleteForm");
+        const permissionSelect = document.querySelector(".permission-select-modal");
+
+        // Set title
+        title.textContent = `User Controls - ${username}`;
+
+        // Set form actions dynamically
+        permissionForm.action = `{{ url_for('update_permission', user_id='PLACEHOLDER') }}`.replace('PLACEHOLDER', userId);
+        resetForm.action = `{{ url_for('reset_password', user_id='PLACEHOLDER') }}`.replace('PLACEHOLDER', userId);
+        deleteForm.action = `{{ url_for('delete_user', user_id='PLACEHOLDER') }}`.replace('PLACEHOLDER', userId);
+
+        // Set current permission level in dropdown
+        permissionSelect.value = permissionLevel;
+
+        // Add confirmation handlers
+        resetForm.onsubmit = function(e) {
+            if (!confirm(`Are you sure you want to reset ${username}'s password to 'password123'?`)) {
+                e.preventDefault();
+            }
+        };
+
+        deleteForm.onsubmit = function(e) {
+            if (!confirm(`Are you sure you want to delete user ${username}? This action cannot be undone.`)) {
+                e.preventDefault();
+            }
+        };
+
+        // Display overlay
+        overlay.style.display = "flex";
+    }
+
+    function closeUserControl() {
+        document.getElementById("userControlOverlay").style.display = "none";
+    }
+
+    // Close overlay when clicking outside the modal
+    window.onclick = function(event) {
+        const settingsOverlay = document.getElementById('settingsOverlay');
+        const userControlOverlay = document.getElementById('userControlOverlay');
+
+        if (event.target === settingsOverlay) {
+            closeSettings();
+        }
+
+        if (event.target === userControlOverlay) {
+            closeUserControl();
         }
     };
-    
-    deleteForm.onsubmit = function(e) {
-        if (!confirm(`Are you sure you want to delete user ${username}? This action cannot be undone.`)) {
-            e.preventDefault();
+
+    // Handle permission level updates dynamically
+    document.getElementById("permissionForm").addEventListener("submit", function(event) {
+        event.preventDefault(); // Prevent default form submission
+
+        const selectedPermission = document.querySelector(".permission-select-modal").value;
+
+        // Confirmation message based on permission level
+        let message = "";
+        switch (selectedPermission) {
+            case "0":
+                message = "User set to Default User.";
+                break;
+            case "1":
+                message = "User promoted to Mod.";
+                break;
+            case "2":
+                message = "User promoted to Admin.";
+                break;
+            case "3":
+                message = "User promoted to Owner.";
+                break;
+            default:
+                message = "Invalid permission level selected.";
         }
-    };
-    
-    overlay.style.display = "flex";
-}
 
-function closeUserControl() {
-    document.getElementById("userControlOverlay").style.display = "none";
-}
-
-// Close overlay when clicking outside the modal
-window.onclick = function(event) {
-    const settingsOverlay = document.getElementById('settingsOverlay');
-    const userControlOverlay = document.getElementById('userControlOverlay');
-    
-    if (event.target === settingsOverlay) {
-        closeSettings();
-    }
-    
-    if (event.target === userControlOverlay) {
-        closeUserControl();
-    }
-}
+        if (confirm(`Are you sure you want to update ${username}'s permission level to: ${message}`)) {
+            this.submit(); // Submit the form after confirmation
+        }
+    });
 </script>
 <script>
   // Save scroll position before form submits
