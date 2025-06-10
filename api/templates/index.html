@@ -10,7 +10,7 @@
 <div class="header">
     <h1>Anonymous Messaging System</h1>
     <div class="header-buttons">
-        {% if session.permission_level < 1 %}
+        {% if session.permission_level < 0 %}
             <a href="{{ url_for('admin_dashboard') }}" class="admin-btn">
                 <img src="{{ url_for('static', filename='images/admin.svg') }}" alt="Admin Icon" class="svg-icon">
                 Admin Dashboard</a>
