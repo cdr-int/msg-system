@@ -254,7 +254,7 @@ def admin_dashboard():
         flash("You must be logged in to access this page.", "error")
         return redirect(url_for("login"))
 
-    # Check if user has admin permission
+    # Check if user has admin permission (level 1 or higher)
     if session.get("permission_level", 0) < 1:
         flash("You do not have permission to access the admin dashboard.",
               "error")
@@ -269,7 +269,7 @@ def admin_dashboard():
 
 @app.route("/admin/delete_message/<message_id>", methods=["POST"])
 def delete_message(message_id):
-    # Check if user is logged in and has admin permission
+    # Check if user is logged in and has admin access (level 1 or higher)
     if "user_id" not in session:
         flash("You must be logged in to perform this action.", "error")
         return redirect(url_for("login"))
@@ -290,12 +290,12 @@ def delete_message(message_id):
 
 @app.route("/admin/update_permission/<user_id>", methods=["POST"])
 def update_permission(user_id):
-    # Check if user is logged in and has admin permission
+    # Check if user is logged in and has owner permission (level 3)
     if "user_id" not in session:
         flash("You must be logged in to perform this action.", "error")
         return redirect(url_for("login"))
 
-    if session.get("permission_level", 0) < 2:
+    if session.get("permission_level", 0) < 3:
         flash("You do not have permission to perform this action.", "error")
         return redirect(url_for("index"))
 
@@ -328,7 +328,7 @@ def update_permission(user_id):
 
 @app.route("/admin/reset_password/<user_id>", methods=["POST"])
 def reset_password(user_id):
-    # Check if user is logged in and has admin permission
+    # Check if user is logged in and has admin access (level 1 or higher)
     if "user_id" not in session:
         flash("You must be logged in to perform this action.", "error")
         return redirect(url_for("login"))
@@ -504,7 +504,7 @@ def index():
 
 @app.route("/admin/delete_user/<user_id>", methods=["POST"])
 def delete_user(user_id):
-    # Only admin can delete users
+    # Only admin (level 2) or higher can delete users
     if "user_id" not in session:
         flash("You must be logged in to perform this action.", "error")
         return redirect(url_for("login"))
