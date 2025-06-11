@@ -99,6 +99,14 @@
     .logout-btn {
         order: 1;
     }
+
+    .message-inline {
+        display: grid !important;
+    }
+
+    .username, .permission-tag {
+        display: inline !important;
+    }
 }
 
 

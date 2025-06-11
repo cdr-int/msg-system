@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Home - Anonymous Messaging{% endblock %}
+{% block title %}Home - Pulse Messaging{% endblock %}
 
 {% block extra_css %}
     <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
@@ -8,7 +8,7 @@
 
 {% block content %}
 <div class="header">
-    <h1>Pule Messaging</h1>
+    <h1>Pulse Messaging</h1>
     <div class="header-buttons">
         {% if session.get('permission_level', 0) > 0 %}
             <a href="{{ url_for('admin_dashboard') }}" class="admin-btn">
