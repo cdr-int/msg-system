@@ -6,4 +6,3 @@ pytz
 markupsafe
 markdown
 pygments
-bson
