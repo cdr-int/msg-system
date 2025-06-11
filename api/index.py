@@ -622,11 +622,12 @@ def delete_user(user_id):
 
     return redirect(url_for("admin_dashboard"))
 
-
 @app.route("/stream")
 def stream():
+    print("Stream endpoint accessed")  # Debug log
+
     if "user_id" not in session:
-        # User not logged in, reject connection immediately
+        print("User not authenticated for stream")  # Debug log
         return Response(
             json.dumps({
                 "type": "error",
@@ -637,70 +638,126 @@ def stream():
         )
 
     user_id = session["user_id"]
+    print(f"Stream started for user: {user_id}")  # Debug log
 
     def event_stream():
-        last_timestamp = time.time()
-        yield "data: {\"type\": \"heartbeat\"}\n\n"
+        try:
+            # Use timestamp instead of datetime for consistency with your message storage
+            last_timestamp = time.time()
+            print(f"Stream initialized with timestamp: {last_timestamp}")  # Debug log
 
-        while True:
-            try:
-                # Check if user still exists
-                user_exists = users_collection.find_one(
-                    {"_id": ObjectId(user_id)})
-                if not user_exists:
-                    # Send error message and close stream
-                    yield f"data: {{\"type\": \"error\", \"message\": \"User no longer exists. Connection closing.\"}}\n\n"
+            # Send initial heartbeat
+            yield "data: {\"type\": \"heartbeat\"}\n\n"
+
+            while True:
+                try:
+                    # Check if user still exists
+                    user_exists = users_collection.find_one({"_id": ObjectId(user_id)})
+                    if not user_exists:
+                        print(f"User {user_id} no longer exists")  # Debug log
+                        yield f"data: {{\"type\": \"error\", \"message\": \"User no longer exists. Connection closing.\"}}\n\n"
+                        break
+
+                    # Query for new messages using timestamp
+                    new_messages = list(
+                        messages_collection.find({
+                            "createdAt": {
+                                "$gt": last_timestamp
+                            }
+                        }).sort("createdAt", 1)
+                    )
+
+                    if new_messages:
+                        print(f"Found {len(new_messages)} new messages")  # Debug log
+                        # Update last_timestamp to the latest message timestamp
+                        last_timestamp = new_messages[-1]["createdAt"]
+
+                        for message in new_messages:
+                            try:
+                                # Get the formatted content
+                                content = message.get("formatted_content")
+                                if not content:
+                                    content = str(format_message_content(message["content"]))
+
+                                # Get username and permission info
+                                username_display = message.get("username", "Unknown")
+
+                                # Get user permission level for proper display
+                                user_doc = users_collection.find_one({"_id": ObjectId(message["user_id"])})
+                                permission_level = 0
+                                if user_doc:
+                                    permission_level = user_doc.get("permission_level", 0)
+
+                                # Add permission tags to username
+                                if permission_level == 1:
+                                    username_display = f"<span class='mod-tag'>[mod]</span> {escape(username_display)}"
+                                elif permission_level == 2:
+                                    username_display = f"<span class='admin-tag'>[admin]</span> {escape(username_display)}"
+                                elif permission_level == 3:
+                                    username_display = f"<span class='owner-tag'>[owner]</span> {escape(username_display)}"
+                                else:
+                                    username_display = escape(username_display)
+
+                                # Create the full message HTML
+                                message_html = f"<strong class='username-highlight'>{username_display}:</strong><div class='message-content'>{content}</div>"
+
+                                data = {
+                                    "type": "message",
+                                    "content": message["content"],
+                                    "formatted_content": message_html,
+                                    "createdAt": message["createdAt"],
+                                    "id": str(message["_id"]),
+                                    "permission_tag": message.get("permission_tag", ""),
+                                    "username": message.get("username", "Unknown")
+                                }
+
+                                data_json = json.dumps(data)
+                                print(f"Sending message: {data_json[:100]}...")  # Debug log (truncated)
+                                yield f"data: {data_json}\n\n"
+
+                            except Exception as msg_error:
+                                print(f"Error processing message: {msg_error}")  # Debug log
+                                continue
+                    else:
+                        # Send heartbeat to keep connection alive
+                        yield "data: {\"type\": \"heartbeat\"}\n\n"
+
+                    # Flush the output to ensure it's sent immediately
+                    time.sleep(1)
+
+                except Exception as loop_error:
+                    print(f"Error in stream loop: {loop_error}")  # Debug log
+                    yield f"data: {{\"type\": \"error\", \"message\": \"Stream error: {str(loop_error)}\"}}\n\n"
                     break
 
-                new_messages = list(
-                    messages_collection.find({
-                        "createdAt": {
-                            "$gt": last_timestamp
-                        }
-                    }).sort("createdAt", 1))
+        except Exception as stream_error:
+            print(f"Fatal stream error: {stream_error}")  # Debug log
+            yield f"data: {{\"type\": \"error\", \"message\": \"Fatal stream error: {str(stream_error)}\"}}\n\n"
 
-                if new_messages:
-                    last_timestamp = new_messages[-1]["createdAt"]
-                    for message in new_messages:
-                        # Use formatted_content if available, otherwise format on-the-fly
-                        content = message.get("formatted_content")
-                        if not content:
-                            content = str(
-                                format_message_content(message["content"]))
+    try:
+        response = Response(event_stream(), mimetype="text/event-stream")
+        response.headers['Cache-Control'] = 'no-cache'
+        response.headers['Connection'] = 'keep-alive'
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        response.headers['X-Accel-Buffering'] = 'no'
+        response.headers['Content-Type'] = 'text/event-stream'
+        response.headers['Transfer-Encoding'] = 'chunked'
 
-                        data = json.dumps({
-                            "type":
-                            "message",
-                            "content":
-                            message["content"],  # Original content
-                            "formatted_content":
-                            content,  # HTML content
-                            "createdAt":
-                            message["createdAt"],
-                            "id":
-                            str(message["_id"]),
-                            "permission_tag":
-                            message.get("permission_tag", ""),
-                            "username":
-                            message.get("username", "Unknown")
-                        })
-                        yield f"data: {data}\n\n"
-                else:
-                    yield "data: {\"type\": \"heartbeat\"}\n\n"
+        print("Stream response created successfully")  # Debug log
+        return response
 
-                time.sleep(2)
+    except Exception as response_error:
+        print(f"Error creating stream response: {response_error}")  # Debug log
+        return Response(
+            json.dumps({
+                "type": "error", 
+                "message": f"Failed to create stream: {str(response_error)}"
+            }),
+            mimetype="application/json",
+            status=500
+        )
 
-            except Exception as e:
-                print(f"SSE Stream error: {e}")
-                yield f"data: {{\"type\": \"error\", \"message\": \"Connection lost\"}}\n\n"
-                break
 
-    response = Response(event_stream(), mimetype="text/event-stream")
-    response.headers['Cache-Control'] = 'no-cache'
-    response.headers['Connection'] = 'keep-alive'
-    response.headers['Access-Control-Allow-Origin'] = '*'
-    response.headers['X-Accel-Buffering'] = 'no'
-    return response
 
 
 if __name__ == "__main__":

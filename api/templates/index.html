@@ -145,7 +145,7 @@
                 } else {
                     // Enter alone: Send the message
                     event.preventDefault();
-                    
+
                     // Check if textarea has content
                     if (this.value.trim() !== '') {
                         document.getElementById('messageForm').submit();
@@ -169,40 +169,53 @@
                 };
 
                 eventSource.onmessage = function(event) {
-                    console.log("Raw SSE data:", event.data); // ADDED: Log raw data
+                    console.log("Raw SSE data:", event.data);
 
                     try {
                         const data = JSON.parse(event.data);
-                        console.log("Parsed data:", data); // ADDED: Log parsed data
+                        console.log("Parsed data:", data);
 
                         if (data.type === 'message') {
                             const messageDiv = document.createElement('div');
                             messageDiv.classList.add('message');
 
-                            const permissionClass = getPermissionClass(data.permission_tag);
-                            const permissionTagHtml = permissionClass ? 
-                                `<span class="permission-tag ${permissionClass}">${data.permission_tag}</span> ` : '';
+                            // Create the message structure to match your template
+                            const messageInlineDiv = document.createElement('div');
+                            messageInlineDiv.classList.add('message-inline');
 
-                            messageDiv.innerHTML = `
-                                ${permissionTagHtml}<strong class="username">${data.username}:</strong> <span class="message-content">${data.content}</span>
-                            `;
+                            // Use the formatted_content that already includes the username and formatting
+                            messageInlineDiv.innerHTML = data.formatted_content;
 
-                            // Insert at the top
+                            messageDiv.appendChild(messageInlineDiv);
+
+                            // Insert at the top (first message position)
                             const firstMessage = messageContainer.querySelector('.message');
                             if (firstMessage) {
                                 messageContainer.insertBefore(messageDiv, firstMessage);
                             } else {
-                                messageContainer.appendChild(messageDiv);
+                                // If no messages exist, insert after the h2 title
+                                const h2 = messageContainer.querySelector('h2');
+                                if (h2) {
+                                    h2.insertAdjacentElement('afterend', messageDiv);
+                                } else {
+                                    messageContainer.appendChild(messageDiv);
+                                }
                             }
+                        } else if (data.type === 'heartbeat') {
+                            // Connection is alive - no action needed
+                            console.log('Heartbeat received');
+                        } else if (data.type === 'error') {
+                            console.error('Stream error:', data.message);
+                            eventSource.close();
+                            // Optionally show error to user
                         }
-                        // handle other types
                     } catch (e) {
                         console.error('Failed to parse SSE message:', e, event.data);
                     }
                 };
 
                 eventSource.onerror = function(event) {
-                    console.error('SSE connection error');
+                    console.error('SSE connection error:', event);
                     eventSource.close();
 
                     // Only attempt to reconnect if we haven't exceeded max attempts
@@ -238,6 +251,5 @@
                 messageTextarea.focus();
             }
         });
-
     </script>
 {% endblock %}
