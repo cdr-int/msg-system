@@ -9,13 +9,12 @@ from datetime import datetime, timedelta
 import json
 from bson import ObjectId
 import hashlib
-from markupsafe import escape
-import re
 from markupsafe import escape, Markup
-import markdown2
-from pygments import highlight
-from pygments.lexers import get_lexer_by_name, TextLexer
-from pygments.formatters import HtmlFormatter
+import re
+import markdown
+import html
+from markdown.extensions import Extension
+from markdown.preprocessors import Preprocessor
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -57,6 +56,14 @@ def clear_messages():
     print(f"Database cleared at {datetime.now(UK_TIMEZONE)}")
 
 
+def html_to_text(html_content):
+    # First, decode HTML entities
+    text = html.unescape(html_content)
+    # Remove HTML tags using regex
+    clean_text = re.sub(r'<[^>]+>', '', text)
+    return clean_text
+
+
 # Create a scheduler to clear the database at midnight UK time every day
 scheduler = BackgroundScheduler(daemon=True)
 scheduler.add_job(clear_messages,
@@ -84,50 +91,74 @@ def load_restricted_words(file_path="api/static/bad_words.txt"):
     return bad_words
 
 
+class UnderlineExtension(Extension):
+    """Custom extension to handle __ as underline instead of bold"""
+
+    def extendMarkdown(self, md):
+        # Add the underline preprocessor with high priority
+        # This runs before the standard bold/italic processing
+        md.preprocessors.register(UnderlinePreprocessor(md), 'underline', 30)
+
+
+class UnderlinePreprocessor(Preprocessor):
+    """Preprocessor to convert __text__ to <u>text</u> before standard markdown processing"""
+
+    def run(self, lines):
+        # Join all lines to handle multi-line underlined text
+        text = '\n'.join(lines)
+
+        # Replace __text__ with <u>text</u> using non-greedy matching
+        # This pattern handles nested formatting and prevents conflicts
+        underline_pattern = r'__([^_\n]*(?:_(?!_)[^_\n]*)*)__'
+        text = re.sub(underline_pattern, r'<u>\1</u>', text)
+
+        # Split back into lines
+        return text.split('\n')
+
+
 def format_message_content(content):
-    content = escape(content)
+    """
+    Enhanced markdown processing with custom underline support using __ syntax
+    """
+    # Initialize markdown with comprehensive extensions including our custom underline extension
+    md = markdown.Markdown(
+        extensions=[
+            UnderlineExtension(
+            ),  # Our custom underline extension (must be first)
+            'codehilite',  # Syntax highlighting for code blocks
+            'fenced_code',  # ```code``` blocks
+            'tables',  # Table support
+            'toc',  # Table of contents
+            'nl2br',  # Convert newlines to <br> tags
+            'sane_lists',  # Better list handling
+            'attr_list',  # Attribute lists for styling
+            'def_list',  # Definition lists
+            'abbr',  # Abbreviations
+            'footnotes',  # Footnote support
+            'admonition',  # Admonition blocks (!!! note)
+            'meta',  # Metadata support
+            'wikilinks',  # Wiki-style links
+            'smarty'  # Smart quotes and typography
+        ],
+        extension_configs={
+            'codehilite': {
+                'css_class': 'codehilite',
+                'use_pygments': True,
+                'noclasses': False,
+                'linenos': False
+            },
+            'toc': {
+                'permalink': True,
+                'permalink_class': 'toc-permalink',
+                'permalink_title': 'Permanent link'
+            }
+        })
 
-    def highlight_code_block(match):
-        lang = match.group(1)
-        code = match.group(2)
-        # Unescape code so Pygments highlights it correctly
-        code = code.replace('&lt;', '<').replace('&gt;',
-                                                 '>').replace('&amp;', '&')
-        try:
-            lexer = get_lexer_by_name(lang,
-                                      stripall=True) if lang else TextLexer()
-        except Exception:
-            lexer = TextLexer()
-        formatter = HtmlFormatter(nowrap=True)
-        highlighted_code = highlight(code, lexer, formatter)
-        return f'<pre><code class="codehilite">{highlighted_code}</code></pre>'
+    # Convert markdown to HTML
+    html_content = md.convert(content)
 
-    pattern = re.compile(r'```(?:([a-zA-Z0-9_+-]+)?\n)?(.*?)```', re.DOTALL)
-    content, n = pattern.subn(highlight_code_block, content)
-    # Debug print number of code blocks replaced
-    print(f"Code blocks replaced: {n}")
-
-    def inline_code_replacer(match):
-        code = match.group(1)
-        code = code.replace('&lt;', '<').replace('&gt;',
-                                                 '>').replace('&amp;', '&')
-        return f'<code>{code}</code>'
-
-    content = re.sub(r'`([^`\n]+)`', inline_code_replacer, content)
-
-    content = re.sub(r'__(.*?)__', r'<u>\1</u>', content)
-    content = re.sub(r'\*\*(.*?)\*\*', r'<strong>\1</strong>', content)
-    content = re.sub(r'\*(.*?)\*', r'<em>\1</em>', content)
-
-    parts = re.split(r'(<pre><code class="codehilite">.*?</code></pre>)',
-                     content,
-                     flags=re.DOTALL)
-    for i in range(len(parts)):
-        if not parts[i].startswith('<pre><code'):
-            parts[i] = parts[i].replace('\n', '<br>')
-    content = ''.join(parts).strip()
-
-    return content
+    # Return as Markup object to prevent double escaping
+    return Markup(html_content)
 
 
 @app.route("/privacy", methods=["GET", "POST"])
@@ -261,8 +292,19 @@ def admin_dashboard():
         return redirect(url_for("index"))
 
     # Get all users and messages for admin view
-    users = users_collection.find().sort("createdAt", -1)
-    messages = messages_collection.find().sort("createdAt", -1)
+    users = list(users_collection.find().sort("createdAt", -1))
+    messages_cursor = messages_collection.find().sort("createdAt", -1)
+
+    # For each message, escape the formatted_content to show HTML tags as text
+    messages = []
+    for msg in messages_cursor:
+        # Create a copy to avoid modifying original
+        msg_copy = dict(msg)
+        if 'formatted_content' in msg_copy:
+            # Escape HTML so tags are visible as text
+            msg_copy['formatted_content'] = escape(
+                msg_copy['formatted_content'])
+        messages.append(msg_copy)
 
     return render_template("admin.html", users=users, messages=messages)
 
@@ -299,22 +341,22 @@ def update_permission(user_id):
     # Minimum permission level to update permissions is Admin (2)
     if current_level < 2:
         flash("You do not have permission to perform this action.", "error")
-        return redirect(url_for("admin_dashboard"))  # <-- Changed here
+        return redirect(url_for("admin_dashboard"))
 
     if user_id == session["user_id"]:
         flash("You cannot change your own permission level.", "error")
-        return redirect(url_for("admin_dashboard"))  # <-- Changed here
+        return redirect(url_for("admin_dashboard"))
 
     try:
         new_permission_level = int(request.form["permission_level"])
     except (ValueError, KeyError):
         flash("Invalid permission level.", "error")
-        return redirect(url_for("admin_dashboard"))  # <-- Changed here
+        return redirect(url_for("admin_dashboard"))
 
     target_user = users_collection.find_one({"_id": ObjectId(user_id)})
     if not target_user:
         flash("User not found.", "error")
-        return redirect(url_for("admin_dashboard"))  # <-- Changed here
+        return redirect(url_for("admin_dashboard"))
 
     target_level = target_user.get("permission_level", 0)
 
@@ -324,22 +366,22 @@ def update_permission(user_id):
     elif current_level == 2:
         if new_permission_level > 2:
             flash("Admins cannot assign Owner (level 3) permissions.", "error")
-            return redirect(url_for("admin_dashboard"))  # <-- Changed here
+            return redirect(url_for("admin_dashboard"))
 
         if target_level >= current_level:
             flash(
                 "You cannot change permissions of users with equal or higher level.",
                 "error")
-            return redirect(url_for("admin_dashboard"))  # <-- Changed here
+            return redirect(url_for("admin_dashboard"))
 
         if new_permission_level > current_level:
             flash("You cannot assign a permission level higher than your own.",
                   "error")
-            return redirect(url_for("admin_dashboard"))  # <-- Changed here
+            return redirect(url_for("admin_dashboard"))
 
     else:
         flash("You do not have permission to perform this action.", "error")
-        return redirect(url_for("admin_dashboard"))  # <-- Changed here
+        return redirect(url_for("admin_dashboard"))
 
     # Update the user's permission level
     result = users_collection.update_one(
@@ -489,8 +531,8 @@ def index():
         content_lower = content.lower()
 
         # Check message length limit
-        if len(content) > 255:
-            flash("Message cannot be longer than 255 characters.", "error")
+        if len(content) > 2000:  # Increased limit for markdown content
+            flash("Message cannot be longer than 2000 characters.", "error")
             return redirect(url_for("index"))
 
         if any(bad_word in content_lower for bad_word in bad_words):
@@ -507,6 +549,7 @@ def index():
             return redirect(url_for("index"))
 
         if content:
+            # Process markdown content
             formatted_content = format_message_content(content)
 
             # Check if user has admin permission and add [admin] prefix
@@ -518,11 +561,33 @@ def index():
             elif session.get("permission_level", 0) == 3:
                 username_display = f"<span class='owner-tag'>[owner]</span> {username_display}"
 
-            message_with_username = f"<strong class='username-highlight'>{escape(username_display)}:</strong> {formatted_content}"
+            # Create message with username and formatted content
+            message_with_username = f"<strong class='username-highlight'>{escape(username_display)}:</strong><div class='message-content'>{formatted_content}</div>"
+
+            # Determine permission tag
+            permission_level = session.get("permission_level", 0)
+            if permission_level == 1:
+                permission_tag = "[mod]"
+            elif permission_level == 2:
+                permission_tag = "[admin]"
+            elif permission_level == 3:
+                permission_tag = "[owner]"
+            else:
+                permission_tag = ""
+
             messages_collection.insert_one({
-                "content": message_with_username,
-                "createdAt": current_time,
-                "user_id": user_id
+                "content":
+                content,  # Store original markdown content
+                "formatted_content":
+                str(formatted_content),  # Store rendered HTML
+                "createdAt":
+                current_time,
+                "user_id":
+                user_id,
+                "permission_tag":
+                permission_tag,
+                "username":
+                session['username']
             })
 
             user_last_message_time[user_id] = current_time
@@ -598,11 +663,27 @@ def stream():
                 if new_messages:
                     last_timestamp = new_messages[-1]["createdAt"]
                     for message in new_messages:
+                        # Use formatted_content if available, otherwise format on-the-fly
+                        content = message.get("formatted_content")
+                        if not content:
+                            content = str(
+                                format_message_content(message["content"]))
+
                         data = json.dumps({
-                            "type": "message",
-                            "content": message["content"],
-                            "createdAt": message["createdAt"],
-                            "id": str(message["_id"])
+                            "type":
+                            "message",
+                            "content":
+                            message["content"],  # Original content
+                            "formatted_content":
+                            content,  # HTML content
+                            "createdAt":
+                            message["createdAt"],
+                            "id":
+                            str(message["_id"]),
+                            "permission_tag":
+                            message.get("permission_tag", ""),
+                            "username":
+                            message.get("username", "Unknown")
                         })
                         yield f"data: {data}\n\n"
                 else:

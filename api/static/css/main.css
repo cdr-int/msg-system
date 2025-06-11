@@ -230,6 +230,8 @@
     border-radius: 8px;
     border: 1px solid #ddd;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    padding-bottom: 10px;
+    padding-top: 10px;
 }
 
 .message p {
@@ -335,3 +337,76 @@
 .owner-tag { color: #ffea70; font-weight: bold; }
 .admin-tag { color: #ff8080; font-weight: bold; }
 .mod-tag { color: #6babff; font-weight: bold; }
+
+
+.message-inline {
+    display: flex;
+    align-items: flex-start; /* Align all items to the top */
+    gap: 5px; /* Adjust spacing as needed */
+}
+
+/* Remove default margin from message content to align first line with others */
+.message-content {
+    margin: 0;
+    line-height: 1.4; /* Optional: adjust line height for better alignment */
+    display: inline; /* Ensure it's inline to align at the top */
+}
+
+.permission-tag,
+.username {
+    vertical-align: top;
+    margin: 0; /* Reset any default margins */
+}
+.message p {
+    font-size: 16px
+}
+
+
+
+/* Replace the existing .message-inline and related styles with these: */
+
+.message-inline {
+    display: flex;
+    align-items: baseline; /* Changed from flex-start to baseline */
+    gap: 5px;
+    line-height: 1.4;
+}
+
+.message-content {
+    margin: 0;
+    padding: 0;
+    line-height: 1.4;
+    flex: 1; /* Allow message content to take remaining space */
+}
+
+/* Ensure the message content div behaves like inline content */
+.message-content div {
+    display: inline;
+    margin: 0;
+    padding: 0;
+}
+
+.permission-tag,
+.username {
+    margin: 0;
+    padding: 0;
+    line-height: 1.4;
+    flex-shrink: 0; /* Prevent shrinking */
+}
+
+/* Remove conflicting styles - update the existing .message p rule */
+.message p {
+    margin: 0;
+    font-size: 16px; /* Keep your preferred font size */
+    line-height: 1.4;
+    color: #555;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    display: inline; /* Make paragraph inline */
+}
+
+/* Dark theme message text color */
+.dark-theme .message p {
+    color: white;
+}

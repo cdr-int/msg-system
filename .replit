@@ -1,5 +1,6 @@
 run = "python api/index.py"
 entrypoint = "README.md"
+disableGuessImports = true
 modules = ["python-3.11"]
 
 [nix]

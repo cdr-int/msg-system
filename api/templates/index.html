@@ -83,7 +83,24 @@
     <div class="messages-container">
         <h2>Messages:</h2>
         {% for message in messages %}
-        <div class="message">{{ message['content'] | safe }}</div>
+        <div class="message">
+            {% set permission_class = '' %}
+            {% if message.get('permission_tag') == '[owner]' %}
+                {% set permission_class = 'owner-tag' %}
+            {% elif message.get('permission_tag') == '[admin]' %}
+                {% set permission_class = 'admin-tag' %}
+            {% elif message.get('permission_tag') == '[mod]' %}
+                {% set permission_class = 'mod-tag' %}
+            {% endif %}
+            
+            <div class="message-inline">
+                {% if permission_class %}
+                    <span class="permission-tag {{ permission_class }}">{{ message.get('permission_tag', '') }}</span>
+                {% endif %}
+                <strong class="username">{{ message.get('username', 'Anonymous') }}:</strong>
+                <div class="message-content">{{ message.formatted_content | safe }}</div>
+            </div>
+        </div>
         {% endfor %}
     </div>
 {% endblock %}
@@ -105,6 +122,20 @@
             }
         }
 
+        // Function to get permission tag CSS class
+        function getPermissionClass(permissionTag) {
+            switch(permissionTag) {
+                case '[owner]':
+                    return 'owner-tag';
+                case '[admin]':
+                    return 'admin-tag';
+                case '[mod]':
+                    return 'mod-tag';
+                default:
+                    return '';
+            }
+        }
+
         // Handle Enter/Shift+Enter functionality for message textarea
         document.getElementById('messageTextarea').addEventListener('keydown', function(event) {
             if (event.key === 'Enter') {
@@ -123,7 +154,6 @@
             }
         });
 
-        // Real-time messaging with SSE (Server-Sent Events)
         const messageContainer = document.querySelector('.messages-container');
         let eventSource = null;
         let reconnectAttempts = 0;
@@ -132,37 +162,40 @@
         function connectSSE() {
             try {
                 eventSource = new EventSource('/stream');
-                
+
                 eventSource.onopen = function(event) {
                     console.log('SSE connection opened');
                     reconnectAttempts = 0; // Reset reconnection attempts on successful connection
                 };
 
                 eventSource.onmessage = function(event) {
+                    console.log("Raw SSE data:", event.data); // ADDED: Log raw data
+
                     try {
                         const data = JSON.parse(event.data);
-                        
-                        // Handle different message types
+                        console.log("Parsed data:", data); // ADDED: Log parsed data
+
                         if (data.type === 'message') {
-                            // Create new message element
                             const messageDiv = document.createElement('div');
                             messageDiv.classList.add('message');
-                            messageDiv.innerHTML = `<p>${data.content}</p>`;
-                            
-                            // Insert at the top of messages (after the h2 header)
-                            const messagesHeader = messageContainer.querySelector('h2');
-                            if (messagesHeader && messagesHeader.nextSibling) {
-                                messageContainer.insertBefore(messageDiv, messagesHeader.nextSibling);
+
+                            const permissionClass = getPermissionClass(data.permission_tag);
+                            const permissionTagHtml = permissionClass ? 
+                                `<span class="permission-tag ${permissionClass}">${data.permission_tag}</span> ` : '';
+
+                            messageDiv.innerHTML = `
+                                ${permissionTagHtml}<strong class="username">${data.username}:</strong> <span class="message-content">${data.content}</span>
+                            `;
+
+                            // Insert at the top
+                            const firstMessage = messageContainer.querySelector('.message');
+                            if (firstMessage) {
+                                messageContainer.insertBefore(messageDiv, firstMessage);
                             } else {
                                 messageContainer.appendChild(messageDiv);
                             }
-                        } else if (data.type === 'heartbeat') {
-                            // Just keep the connection alive, no action needed
-                            console.log('Heartbeat received');
-                        } else if (data.type === 'error') {
-                            console.error('Server error:', data.message);
                         }
-                        
+                        // handle other types
                     } catch (e) {
                         console.error('Failed to parse SSE message:', e, event.data);
                     }
@@ -171,7 +204,7 @@
                 eventSource.onerror = function(event) {
                     console.error('SSE connection error');
                     eventSource.close();
-                    
+
                     // Only attempt to reconnect if we haven't exceeded max attempts
                     if (reconnectAttempts < maxReconnectAttempts) {
                         reconnectAttempts++;
@@ -183,7 +216,7 @@
                         console.error('Max reconnection attempts reached. Please refresh the page manually.');
                     }
                 };
-                
+
             } catch (error) {
                 console.error('Failed to create SSE connection:', error);
             }
@@ -205,5 +238,6 @@
                 messageTextarea.focus();
             }
         });
+
     </script>
 {% endblock %}

@@ -4,5 +4,6 @@ apscheduler
 flask-cors
 pytz
 markupsafe
-markdown2
+markdown
 pygments
+bson
