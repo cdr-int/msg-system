@@ -129,7 +129,6 @@ def format_message_content(content):
             'fenced_code',  # ```code``` blocks
             'tables',  # Table support
             'toc',  # Table of contents
-            'nl2br',  # Convert newlines to <br> tags
             'sane_lists',  # Better list handling
             'attr_list',  # Attribute lists for styling
             'def_list',  # Definition lists
