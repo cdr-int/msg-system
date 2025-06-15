@@ -94,10 +94,12 @@
             {% endif %}
             
             <div class="message-inline">
-                {% if permission_class %}
-                    <span class="permission-tag {{ permission_class }}">{{ message.get('permission_tag', '') }}</span>
-                {% endif %}
-                <strong class="username">{{ message.get('username', 'Anonymous') }}:</strong>
+                <div class="message-inline-header">
+                    {% if permission_class %}
+                        <span class="permission-tag {{ permission_class }}">{{ message.get('permission_tag', '') }}</span>
+                    {% endif %}
+                    <strong class="username">{{ message.get('username', 'Anonymous') }}:</strong>
+                </div>
                 <div class="message-content">{{ message.formatted_content | safe }}</div>
             </div>
         </div>

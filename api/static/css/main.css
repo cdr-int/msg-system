@@ -348,10 +348,17 @@
 .mod-tag { color: #6babff; font-weight: bold; }
 }
 
+.light-theme {
+.owner-tag { color: #ff8800; font-weight: bold; }
+.admin-tag { color: #ff4d4d; font-weight: bold; }
+.mod-tag { color: #388eff; font-weight: bold; }
+}
+
 .message-inline {
     display: flex;
-    align-items: flex-start; /* Align all items to the top */
     gap: 5px; /* Adjust spacing as needed */
+    align-items: baseline; /* Changed from flex-start to baseline */
+    line-height: 1.4;
 }
 
 /* Remove default margin from message content to align first line with others */
@@ -368,17 +375,6 @@
 }
 .message p {
     font-size: 16px
-}
-
-
-
-/* Replace the existing .message-inline and related styles with these: */
-
-.message-inline {
-    display: flex;
-    align-items: baseline; /* Changed from flex-start to baseline */
-    gap: 5px;
-    line-height: 1.4;
 }
 
 .message-content {
@@ -418,4 +414,39 @@
 /* Dark theme message text color */
 .dark-theme .message p {
     color: white;
+}
+
+@media (max-width: 470px) {
+    .message-inline {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+    }
+
+    .message-inline-header {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .message-content {
+        padding-left: 0;
+        margin-top: 2px;
+    }
+}
+
+
+.message-content,
+.message-inline-header,
+.username,
+.permission-tag {
+    word-break: break-word;       /* Allows breaking within long words */
+    overflow-wrap: break-word;    /* Fallback for some browsers */
+}
+
+.message {
+    max-width: 100%;
+    word-wrap: break-word;
 }
