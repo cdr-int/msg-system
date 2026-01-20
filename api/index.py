@@ -20,7 +20,7 @@ from markdown.preprocessors import Preprocessor
 app = Flask(__name__)
 
 # Use a fixed secret key (replace with environment variable in production)
-app.secret_key = os.environ.get('SECRET_KEY', 'supersecretkey123')
+app.secret_key = os.environ.get('SECRET_KEY', '') # removed
 
 # Make sessions permanent and set lifetime
 app.permanent_session_lifetime = timedelta(days=7)
@@ -32,13 +32,13 @@ def make_session_permanent():
 
 
 # MongoDB URI (modified to include the database name directly)
-MONGO_URI = "mongodb+srv://c828522:jamie@cluster0.sfwht.mongodb.net/pulse_chat_db?retryWrites=true&w=majority&appName=Cluster0"
+MONGO_URI = "" # removed
 
 # Set up MongoDB client
 client = MongoClient(MONGO_URI)
 
 # Explicitly define the database
-db = client['pulse_chat_db']  # Replace with your database name
+db = client['']  # Replace with your database name # removed
 messages_collection = db.messages
 users_collection = db.users
 
